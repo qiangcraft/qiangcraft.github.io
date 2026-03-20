@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人形机器人系统总览</title>
+<style>
+  :root {
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-background-primary: #ffffff;
+    --font-sans: system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-text-primary: #e8e6de;
+      --color-text-secondary: #9c9a92;
+      --color-background-primary: #1c1c1a;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    padding: 32px 24px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--color-text-primary);
+  }
+  p.subtitle {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin-bottom: 28px;
+  }
+  svg text { font-family: var(--font-sans); }
+
+  /* Color ramp classes — light mode fills, dark mode via media query */
+  .c-purple rect, .c-purple ellipse, .c-purple circle { fill: #EEEDFE; stroke: #534AB7; }
+  .c-purple text.th { fill: #3C3489; }
+  .c-purple text.ts { fill: #534AB7; }
+
+  .c-teal rect, .c-teal ellipse, .c-teal circle { fill: #E1F5EE; stroke: #0F6E56; }
+  .c-teal text.th { fill: #085041; }
+  .c-teal text.ts { fill: #0F6E56; }
+
+  .c-blue rect, .c-blue ellipse, .c-blue circle { fill: #E6F1FB; stroke: #185FA5; }
+  .c-blue text.th { fill: #0C447C; }
+  .c-blue text.ts { fill: #185FA5; }
+
+  .c-coral rect, .c-coral ellipse, .c-coral circle { fill: #FAECE7; stroke: #993C1D; }
+  .c-coral text.th { fill: #712B13; }
+  .c-coral text.ts { fill: #993C1D; }
+
+  .c-amber rect, .c-amber ellipse, .c-amber circle { fill: #FAEEDA; stroke: #854F0B; }
+  .c-amber text.th { fill: #633806; }
+  .c-amber text.ts { fill: #854F0B; }
+
+  .c-green rect, .c-green ellipse, .c-green circle { fill: #EAF3DE; stroke: #3B6D11; }
+  .c-green text.th { fill: #27500A; }
+  .c-green text.ts { fill: #3B6D11; }
+
+  .c-pink rect, .c-pink ellipse, .c-pink circle { fill: #FBEAF0; stroke: #993556; }
+  .c-pink text.th { fill: #72243E; }
+  .c-pink text.ts { fill: #993556; }
+
+  text.th { font-size: 14px; font-weight: 500; }
+  text.ts { font-size: 12px; font-weight: 400; }
+
+  @media (prefers-color-scheme: dark) {
+    .c-purple rect, .c-purple ellipse, .c-purple circle { fill: #3C3489; stroke: #AFA9EC; }
+    .c-purple text.th { fill: #CECBF6; }
+    .c-purple text.ts { fill: #AFA9EC; }
+
+    .c-teal rect, .c-teal ellipse, .c-teal circle { fill: #085041; stroke: #5DCAA5; }
+    .c-teal text.th { fill: #9FE1CB; }
+    .c-teal text.ts { fill: #5DCAA5; }
+
+    .c-blue rect, .c-blue ellipse, .c-blue circle { fill: #0C447C; stroke: #85B7EB; }
+    .c-blue text.th { fill: #B5D4F4; }
+    .c-blue text.ts { fill: #85B7EB; }
+
+    .c-coral rect, .c-coral ellipse, .c-coral circle { fill: #712B13; stroke: #F0997B; }
+    .c-coral text.th { fill: #F5C4B3; }
+    .c-coral text.ts { fill: #F0997B; }
+
+    .c-amber rect, .c-amber ellipse, .c-amber circle { fill: #633806; stroke: #EF9F27; }
+    .c-amber text.th { fill: #FAC775; }
+    .c-amber text.ts { fill: #EF9F27; }
+
+    .c-green rect, .c-green ellipse, .c-green circle { fill: #27500A; stroke: #97C459; }
+    .c-green text.th { fill: #C0DD97; }
+    .c-green text.ts { fill: #97C459; }
+
+    .c-pink rect, .c-pink ellipse, .c-pink circle { fill: #72243E; stroke: #ED93B1; }
+    .c-pink text.th { fill: #F4C0D1; }
+    .c-pink text.ts { fill: #ED93B1; }
+  }
+</style>
+</head>
+<body>
+<h1>人形机器人系统总览</h1>
+<p class="subtitle">传感器 · 执行器 · 通信协议 · 身体结构 · 软件架构 · 具身智能</p>
+
+<svg width="100%" viewBox="0 0 680 1600" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Title -->
+<text class="th" x="340" y="32" text-anchor="middle" font-size="16" fill="var(--color-text-primary)">人形机器人系统总览</text>
+
+<!-- ===== BODY STRUCTURE ===== -->
+<g class="c-pink">
+  <rect x="30" y="52" width="620" height="230" rx="14" stroke-width="0.5"/>
+  <text class="th" x="50" y="76">身体结构 Body Structure</text>
+</g>
+<g class="c-coral">
+  <rect x="48" y="88" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="122" y="108" text-anchor="middle">骨骼 / 连杆</text>
+  <text class="ts" x="122" y="126" text-anchor="middle">仿人体骨骼拓扑</text>
+  <text class="ts" x="122" y="144" text-anchor="middle">碳纤维 / 铝合金</text>
+  <text class="ts" x="122" y="160" text-anchor="middle">钛合金关节壳</text>
+  <text class="ts" x="122" y="176" text-anchor="middle">模块化连杆设计</text>
+  <text class="ts" x="122" y="192" text-anchor="middle">轻量化拓扑优化</text>
+  <text class="ts" x="122" y="208" text-anchor="middle">防碰撞缓冲结构</text>
+</g>
+<g class="c-purple">
+  <rect x="208" y="88" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="282" y="108" text-anchor="middle">自由度配置</text>
+  <text class="ts" x="282" y="126" text-anchor="middle">颈部 2 DoF</text>
+  <text class="ts" x="282" y="144" text-anchor="middle">腰部 3 DoF</text>
+  <text class="ts" x="282" y="160" text-anchor="middle">肩/肘/腕 7 DoF×2</text>
+  <text class="ts" x="282" y="176" text-anchor="middle">髋/膝/踝 6 DoF×2</text>
+  <text class="ts" x="282" y="192" text-anchor="middle">手指 多 DoF</text>
+  <text class="ts" x="282" y="208" text-anchor="middle">全身 30–60 DoF</text>
+</g>
+<g class="c-amber">
+  <rect x="368" y="88" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="442" y="108" text-anchor="middle">关节设计</text>
+  <text class="ts" x="442" y="126" text-anchor="middle">转动关节</text>
+  <text class="ts" x="442" y="144" text-anchor="middle">移动关节（线性）</text>
+  <text class="ts" x="442" y="160" text-anchor="middle">球形关节</text>
+  <text class="ts" x="442" y="176" text-anchor="middle">串联弹性关节 SEA</text>
+  <text class="ts" x="442" y="192" text-anchor="middle">可变刚度关节 VSA</text>
+  <text class="ts" x="442" y="208" text-anchor="middle">欠驱动关节</text>
+</g>
+<g class="c-green">
+  <rect x="528" y="88" width="108" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="582" y="108" text-anchor="middle">整机指标</text>
+  <text class="ts" x="582" y="126" text-anchor="middle">身高 160–180cm</text>
+  <text class="ts" x="582" y="144" text-anchor="middle">体重 40–80kg</text>
+  <text class="ts" x="582" y="160" text-anchor="middle">负载 5–20kg</text>
+  <text class="ts" x="582" y="176" text-anchor="middle">步速 1–3 m/s</text>
+  <text class="ts" x="582" y="192" text-anchor="middle">续航 1–4h</text>
+  <text class="ts" x="582" y="208" text-anchor="middle">防护 IP52+</text>
+</g>
+
+<!-- ===== SENSORS ===== -->
+<g class="c-purple">
+  <rect x="30" y="296" width="620" height="230" rx="14" stroke-width="0.5"/>
+  <text class="th" x="50" y="320">传感器 Sensors</text>
+</g>
+<g class="c-teal">
+  <rect x="48" y="332" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="122" y="352" text-anchor="middle">本体感知</text>
+  <text class="ts" x="122" y="370" text-anchor="middle">IMU（6轴/9轴）</text>
+  <text class="ts" x="122" y="388" text-anchor="middle">关节编码器</text>
+  <text class="ts" x="122" y="404" text-anchor="middle">力矩传感器</text>
+  <text class="ts" x="122" y="420" text-anchor="middle">六维力/力矩</text>
+  <text class="ts" x="122" y="436" text-anchor="middle">触觉传感器</text>
+  <text class="ts" x="122" y="452" text-anchor="middle">皮肤电阻阵列</text>
+  <text class="ts" x="122" y="468" text-anchor="middle">足底压力阵列</text>
+</g>
+<g class="c-blue">
+  <rect x="208" y="332" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="282" y="352" text-anchor="middle">视觉感知</text>
+  <text class="ts" x="282" y="370" text-anchor="middle">RGB-D 相机</text>
+  <text class="ts" x="282" y="388" text-anchor="middle">立体相机</text>
+  <text class="ts" x="282" y="404" text-anchor="middle">鱼眼/全景相机</text>
+  <text class="ts" x="282" y="420" text-anchor="middle">事件相机</text>
+  <text class="ts" x="282" y="436" text-anchor="middle">热成像</text>
+  <text class="ts" x="282" y="452" text-anchor="middle">偏振光相机</text>
+  <text class="ts" x="282" y="468" text-anchor="middle">高速相机</text>
+</g>
+<g class="c-coral">
+  <rect x="368" y="332" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="442" y="352" text-anchor="middle">测距 / 环境</text>
+  <text class="ts" x="442" y="370" text-anchor="middle">3D LiDAR</text>
+  <text class="ts" x="442" y="388" text-anchor="middle">ToF 传感器</text>
+  <text class="ts" x="442" y="404" text-anchor="middle">超声波</text>
+  <text class="ts" x="442" y="420" text-anchor="middle">毫米波雷达</text>
+  <text class="ts" x="442" y="436" text-anchor="middle">麦克风阵列</text>
+  <text class="ts" x="442" y="452" text-anchor="middle">气体/化学传感</text>
+  <text class="ts" x="442" y="468" text-anchor="middle">光流传感器</text>
+</g>
+<g class="c-amber">
+  <rect x="528" y="332" width="108" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="582" y="352" text-anchor="middle">定位</text>
+  <text class="ts" x="582" y="370" text-anchor="middle">GNSS / RTK</text>
+  <text class="ts" x="582" y="388" text-anchor="middle">视觉里程计</text>
+  <text class="ts" x="582" y="404" text-anchor="middle">激光里程计</text>
+  <text class="ts" x="582" y="420" text-anchor="middle">UWB 定位</text>
+  <text class="ts" x="582" y="436" text-anchor="middle">磁力计</text>
+  <text class="ts" x="582" y="452" text-anchor="middle">气压高度计</text>
+</g>
+
+<!-- ===== ACTUATORS ===== -->
+<g class="c-teal">
+  <rect x="30" y="540" width="620" height="230" rx="14" stroke-width="0.5"/>
+  <text class="th" x="50" y="564">执行器 Actuators</text>
+</g>
+<g class="c-blue">
+  <rect x="48" y="576" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="122" y="596" text-anchor="middle">电驱动</text>
+  <text class="ts" x="122" y="614" text-anchor="middle">无刷直流电机</text>
+  <text class="ts" x="122" y="632" text-anchor="middle">伺服电机</text>
+  <text class="ts" x="122" y="648" text-anchor="middle">线性执行器</text>
+  <text class="ts" x="122" y="664" text-anchor="middle">空心杯电机</text>
+  <text class="ts" x="122" y="680" text-anchor="middle">音圈执行器</text>
+  <text class="ts" x="122" y="696" text-anchor="middle">力矩电机</text>
+  <text class="ts" x="122" y="712" text-anchor="middle">轮毂电机</text>
+</g>
+<g class="c-purple">
+  <rect x="208" y="576" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="282" y="596" text-anchor="middle">传动结构</text>
+  <text class="ts" x="282" y="614" text-anchor="middle">谐波减速器</text>
+  <text class="ts" x="282" y="632" text-anchor="middle">行星齿轮组</text>
+  <text class="ts" x="282" y="648" text-anchor="middle">滚珠丝杠</text>
+  <text class="ts" x="282" y="664" text-anchor="middle">绳驱 / 腱驱</text>
+  <text class="ts" x="282" y="680" text-anchor="middle">液压缸</text>
+  <text class="ts" x="282" y="696" text-anchor="middle">气动肌肉</text>
+  <text class="ts" x="282" y="712" text-anchor="middle">串联弹性体 SEA</text>
+</g>
+<g class="c-coral">
+  <rect x="368" y="576" width="148" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="442" y="596" text-anchor="middle">手部 / 柔性</text>
+  <text class="ts" x="442" y="614" text-anchor="middle">灵巧手指</text>
+  <text class="ts" x="442" y="632" text-anchor="middle">欠驱动夹爪</text>
+  <text class="ts" x="442" y="648" text-anchor="middle">软体手（气动）</text>
+  <text class="ts" x="442" y="664" text-anchor="middle">SMA 形状记忆</text>
+  <text class="ts" x="442" y="680" text-anchor="middle">介电弹性体 DEA</text>
+  <text class="ts" x="442" y="696" text-anchor="middle">压电微执行器</text>
+  <text class="ts" x="442" y="712" text-anchor="middle">磁流变液关节</text>
+</g>
+<g class="c-green">
+  <rect x="528" y="576" width="108" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="582" y="596" text-anchor="middle">移动 / 平衡</text>
+  <text class="ts" x="582" y="614" text-anchor="middle">双足步行</text>
+  <text class="ts" x="582" y="632" text-anchor="middle">轮足混合</text>
+  <text class="ts" x="582" y="648" text-anchor="middle">跳跃弹簧腿</text>
+  <text class="ts" x="582" y="664" text-anchor="middle">ZMP 控制器</text>
+  <text class="ts" x="582" y="680" text-anchor="middle">踝关节弹簧</text>
+  <text class="ts" x="582" y="696" text-anchor="middle">被动动力学</text>
+</g>
+
+<!-- ===== COMMS ===== -->
+<g class="c-blue">
+  <rect x="30" y="784" width="620" height="230" rx="14" stroke-width="0.5"/>
+  <text class="th" x="50" y="808">通信协议 Communication Protocols</text>
+</g>
+<g class="c-teal">
+  <rect x="48" y="820" width="180" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="138" y="840" text-anchor="middle">内部总线</text>
+  <text class="ts" x="138" y="858" text-anchor="middle">EtherCAT（实时）</text>
+  <text class="ts" x="138" y="876" text-anchor="middle">CAN / CAN FD</text>
+  <text class="ts" x="138" y="894" text-anchor="middle">RS-485 / Modbus</text>
+  <text class="ts" x="138" y="910" text-anchor="middle">SPI / I²C</text>
+  <text class="ts" x="138" y="926" text-anchor="middle">PCIe / USB 3.x</text>
+  <text class="ts" x="138" y="942" text-anchor="middle">MIPI CSI（相机）</text>
+  <text class="ts" x="138" y="958" text-anchor="middle">FlexRay</text>
+</g>
+<g class="c-purple">
+  <rect x="242" y="820" width="155" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="319" y="840" text-anchor="middle">无线通信</text>
+  <text class="ts" x="319" y="858" text-anchor="middle">Wi-Fi 6 / 7</text>
+  <text class="ts" x="319" y="876" text-anchor="middle">5G / LTE</text>
+  <text class="ts" x="319" y="894" text-anchor="middle">Bluetooth 5.x LE</text>
+  <text class="ts" x="319" y="910" text-anchor="middle">UWB（厘米级）</text>
+  <text class="ts" x="319" y="926" text-anchor="middle">Zigbee / Thread</text>
+  <text class="ts" x="319" y="942" text-anchor="middle">LoRa（远距离）</text>
+  <text class="ts" x="319" y="958" text-anchor="middle">RFiD / NFC</text>
+</g>
+<g class="c-amber">
+  <rect x="411" y="820" width="225" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="523" y="840" text-anchor="middle">软件中间件</text>
+  <text class="ts" x="523" y="858" text-anchor="middle">ROS 2 / DDS（实时）</text>
+  <text class="ts" x="523" y="876" text-anchor="middle">MQTT / AMQP（IoT）</text>
+  <text class="ts" x="523" y="894" text-anchor="middle">gRPC / Protobuf</text>
+  <text class="ts" x="523" y="910" text-anchor="middle">WebRTC（低延迟 AV）</text>
+  <text class="ts" x="523" y="926" text-anchor="middle">OPC-UA（工业）</text>
+  <text class="ts" x="523" y="942" text-anchor="middle">Zenoh（机器人网络）</text>
+  <text class="ts" x="523" y="958" text-anchor="middle">OpenVX / CUDA IPC</text>
+</g>
+
+<!-- ===== SOFTWARE STACK ===== -->
+<g class="c-green">
+  <rect x="30" y="1028" width="620" height="230" rx="14" stroke-width="0.5"/>
+  <text class="th" x="50" y="1052">软件架构 Software Stack</text>
+</g>
+<g class="c-teal">
+  <rect x="48" y="1064" width="143" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="119" y="1084" text-anchor="middle">实时控制层</text>
+  <text class="ts" x="119" y="1102" text-anchor="middle">RTOS（RT-Linux）</text>
+  <text class="ts" x="119" y="1120" text-anchor="middle">关节控制环 1kHz</text>
+  <text class="ts" x="119" y="1136" text-anchor="middle">状态估计 500Hz</text>
+  <text class="ts" x="119" y="1152" text-anchor="middle">力矩控制器</text>
+  <text class="ts" x="119" y="1168" text-anchor="middle">安全监控模块</text>
+  <text class="ts" x="119" y="1184" text-anchor="middle">故障检测 FDD</text>
+  <text class="ts" x="119" y="1200" text-anchor="middle">紧急停止逻辑</text>
+</g>
+<g class="c-blue">
+  <rect x="203" y="1064" width="143" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="274" y="1084" text-anchor="middle">感知与建图</text>
+  <text class="ts" x="274" y="1102" text-anchor="middle">视觉 SLAM</text>
+  <text class="ts" x="274" y="1120" text-anchor="middle">激光 SLAM</text>
+  <text class="ts" x="274" y="1136" text-anchor="middle">点云处理</text>
+  <text class="ts" x="274" y="1152" text-anchor="middle">语义地图构建</text>
+  <text class="ts" x="274" y="1168" text-anchor="middle">目标检测 / 分割</text>
+  <text class="ts" x="274" y="1184" text-anchor="middle">深度估计</text>
+  <text class="ts" x="274" y="1200" text-anchor="middle">场景理解</text>
+</g>
+<g class="c-coral">
+  <rect x="358" y="1064" width="143" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="429" y="1084" text-anchor="middle">运动规划</text>
+  <text class="ts" x="429" y="1102" text-anchor="middle">全身控制 WBC</text>
+  <text class="ts" x="429" y="1120" text-anchor="middle">MPC 预测控制</text>
+  <text class="ts" x="429" y="1136" text-anchor="middle">步态规划器</text>
+  <text class="ts" x="429" y="1152" text-anchor="middle">落脚点选择</text>
+  <text class="ts" x="429" y="1168" text-anchor="middle">轨迹优化</text>
+  <text class="ts" x="429" y="1184" text-anchor="middle">碰撞避免</text>
+  <text class="ts" x="429" y="1200" text-anchor="middle">ZMP / DCM 规划</text>
+</g>
+<g class="c-purple">
+  <rect x="513" y="1064" width="123" height="180" rx="10" stroke-width="0.5"/>
+  <text class="th" x="574" y="1084" text-anchor="middle">任务管理</text>
+  <text class="ts" x="574" y="1102" text-anchor="middle">行为树 BT</text>
+  <text class="ts" x="574" y="1120" text-anchor="middle">有限状态机 FSM</text>
+  <text class="ts" x="574" y="1136" text-anchor="middle">任务调度器</text>
+  <text class="ts" x="574" y="1152" text-anchor="middle">人机交互 HRI</text>
+  <text class="ts" x="574" y="1168" text-anchor="middle">语音指令解析</text>
+  <text class="ts" x="574" y="1184" text-anchor="middle">手势识别</text>
+  <text class="ts" x="574" y="1200" text-anchor="middle">远程操控接口</text>
+</g>
+
+<!-- ===== EMBODIED AI ===== -->
+<g class="c-amber">
+  <rect x="30" y="1272" width="620" height="300" rx="14" stroke-width="0.5"/>
+  <text class="th" x="50" y="1296">具身智能 Embodied AI</text>
+</g>
+<g class="c-coral">
+  <rect x="48" y="1308" width="143" height="248" rx="10" stroke-width="0.5"/>
+  <text class="th" x="119" y="1328" text-anchor="middle">强化学习</text>
+  <text class="ts" x="119" y="1348" text-anchor="middle">IsaacGym 仿真</text>
+  <text class="ts" x="119" y="1366" text-anchor="middle">MuJoCo 仿真</text>
+  <text class="ts" x="119" y="1384" text-anchor="middle">PPO / SAC 算法</text>
+  <text class="ts" x="119" y="1402" text-anchor="middle">课程学习</text>
+  <text class="ts" x="119" y="1420" text-anchor="middle">域随机化</text>
+  <text class="ts" x="119" y="1438" text-anchor="middle">Sim-to-Real</text>
+  <text class="ts" x="119" y="1456" text-anchor="middle">奖励函数设计</text>
+  <text class="ts" x="119" y="1474" text-anchor="middle">并行训练</text>
+  <text class="ts" x="119" y="1492" text-anchor="middle">零样本迁移</text>
+  <text class="ts" x="119" y="1510" text-anchor="middle">地形自适应</text>
+</g>
+<g class="c-teal">
+  <rect x="203" y="1308" width="143" height="248" rx="10" stroke-width="0.5"/>
+  <text class="th" x="274" y="1328" text-anchor="middle">模仿学习</text>
+  <text class="ts" x="274" y="1348" text-anchor="middle">遥操作采集</text>
+  <text class="ts" x="274" y="1366" text-anchor="middle">人类示范数据</text>
+  <text class="ts" x="274" y="1384" text-anchor="middle">行为克隆 BC</text>
+  <text class="ts" x="274" y="1402" text-anchor="middle">逆强化学习 IRL</text>
+  <text class="ts" x="274" y="1420" text-anchor="middle">ACT 架构</text>
+  <text class="ts" x="274" y="1438" text-anchor="middle">Diffusion Policy</text>
+  <text class="ts" x="274" y="1456" text-anchor="middle">动作分块</text>
+  <text class="ts" x="274" y="1474" text-anchor="middle">数据增强</text>
+  <text class="ts" x="274" y="1492" text-anchor="middle">多模态融合</text>
+  <text class="ts" x="274" y="1510" text-anchor="middle">少样本学习</text>
+</g>
+<g class="c-blue">
+  <rect x="358" y="1308" width="143" height="248" rx="10" stroke-width="0.5"/>
+  <text class="th" x="429" y="1328" text-anchor="middle">大模型接入</text>
+  <text class="ts" x="429" y="1348" text-anchor="middle">VLA 架构</text>
+  <text class="ts" x="429" y="1366" text-anchor="middle">视觉语言模型</text>
+  <text class="ts" x="429" y="1384" text-anchor="middle">RT-2 / pi0</text>
+  <text class="ts" x="429" y="1402" text-anchor="middle">OpenVLA</text>
+  <text class="ts" x="429" y="1420" text-anchor="middle">动作 Token 化</text>
+  <text class="ts" x="429" y="1438" text-anchor="middle">链式思维规划</text>
+  <text class="ts" x="429" y="1456" text-anchor="middle">开放词汇抓取</text>
+  <text class="ts" x="429" y="1474" text-anchor="middle">语言指令执行</text>
+  <text class="ts" x="429" y="1492" text-anchor="middle">云端推理</text>
+  <text class="ts" x="429" y="1510" text-anchor="middle">边缘端蒸馏</text>
+</g>
+<g class="c-green">
+  <rect x="513" y="1308" width="123" height="248" rx="10" stroke-width="0.5"/>
+  <text class="th" x="574" y="1328" text-anchor="middle">评测 / 部署</text>
+  <text class="ts" x="574" y="1348" text-anchor="middle">仿真基准测试</text>
+  <text class="ts" x="574" y="1366" text-anchor="middle">真实场景评估</text>
+  <text class="ts" x="574" y="1384" text-anchor="middle">安全性验证</text>
+  <text class="ts" x="574" y="1402" text-anchor="middle">鲁棒性测试</text>
+  <text class="ts" x="574" y="1420" text-anchor="middle">OTA 模型更新</text>
+  <text class="ts" x="574" y="1438" text-anchor="middle">数据飞轮</text>
+  <text class="ts" x="574" y="1456" text-anchor="middle">持续学习</text>
+  <text class="ts" x="574" y="1474" text-anchor="middle">联邦学习</text>
+  <text class="ts" x="574" y="1492" text-anchor="middle">隐私保护</text>
+  <text class="ts" x="574" y="1510" text-anchor="middle">合规认证</text>
+</g>
+
+</svg>
+</body>
+</html>

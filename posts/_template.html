@@ -230,42 +230,41 @@ pre.code-block .lang-label {
 
       <!-- 正文内容 -->
       <article class="post-body reveal">
-        <div class="prose">
+        <div class="prose" id="post-md">
 
           <!-- ⑦ 从这里开始写正文 ↓ -->
+          <!-- 只需粘贴 Markdown 文本，页面会自动渲染 -->
+          <script type="text/markdown" data-target="post-md">
 
-          <p>这是文章的开头段落。用普通的 <code>&lt;p&gt;</code> 标签写文字。</p>
+# 标题示例
 
-          <h2>第一个小标题</h2>
-          <p>正文内容。可以用 <strong>加粗</strong>、<em>斜体</em>，
-          也可以加 <a href="#">超链接</a>。</p>
+这是文章的开头段落。可以写 **加粗**、*斜体*，也可以加 [超链接](#)。
 
-          <blockquote>
-            引用块，适合放名言、重要结论或引用别人的话。
-          </blockquote>
+> 引用块，适合放名言、重要结论或引用别人的话。
 
-          <h2>代码示例</h2>
-          <p>下面是一个 C++ 代码块（会自动添加复制按钮）：</p>
+## 代码示例
 
-          <!-- 代码块用 pre.code-block，语言标签可以改 -->
-          <pre class="code-block"><span class="lang-label">C++</span><span class="kw">#include</span> <span class="str">&lt;iostream&gt;</span>
+下面是一个 C++ 代码块（会自动添加复制按钮）：
 
-<span class="kw">int</span> <span class="fn">main</span>() {
-    std::cout &lt;&lt; <span class="str">"Hello, QiangCraft!"</span> &lt;&lt; std::endl;
-    <span class="kw">return</span> <span class="num">0</span>;
+```cpp
+#include <iostream>
+int main() {
+  std::cout << "Hello, QiangCraft!" << std::endl;
+  return 0;
 }
-<span class="cmt">// 输出：Hello, QiangCraft!</span></pre>
+```
 
-          <h2>列表示例</h2>
-          <ul>
-            <li>第一点内容</li>
-            <li>第二点内容</li>
-            <li>第三点内容</li>
-          </ul>
+## 列表示例
 
-          <hr/>
+- 第一点内容
+- 第二点内容
+- 第三点内容
 
-          <p>文章结束段落，可以写总结或下一步思考方向。</p>
+---
+
+文章结束段落，可以写总结或下一步思考方向。
+
+          </script>
 
           <!-- ⑦ 正文到这里结束 ↑ -->
 
@@ -321,6 +320,7 @@ pre.code-block .lang-label {
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="../../assets/main.js"></script>
 <script>
 /* 目录自动高亮 */

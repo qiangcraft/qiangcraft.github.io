@@ -45,6 +45,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
   }
 
+  /* ── 文章页：Markdown 自动渲染 ── */
+  document.querySelectorAll('script[type="text/markdown"]').forEach(src => {
+    const targetId = src.dataset.target;
+    const target = targetId ? document.getElementById(targetId) : src.parentElement;
+    if (!target) return;
+    const md = src.textContent || '';
+    if (window.marked && typeof window.marked.parse === 'function') {
+      target.innerHTML = window.marked.parse(md);
+    } else {
+      // 无解析器时保底显示纯文本，避免空白
+      target.textContent = md;
+    }
+  });
+
+  // 把 Markdown 生成的代码块统一成现有的 code-block 样式
+  document.querySelectorAll('pre > code').forEach(code => {
+    const pre = code.parentElement;
+    if (!pre || pre.classList.contains('code-block')) return;
+    pre.classList.add('code-block');
+    const langMatch = code.className.match(/language-([^\s]+)/);
+    if (langMatch) {
+      const label = document.createElement('span');
+      label.className = 'lang-label';
+      label.textContent = langMatch[1].toUpperCase();
+      pre.insertBefore(label, code);
+    }
+  });
+
   /* ── 文章页：代码块复制按钮 ── */
   document.querySelectorAll('pre.code-block').forEach(pre => {
     const btn = document.createElement('button');
