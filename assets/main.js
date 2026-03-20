@@ -44,7 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (countEl) countEl.textContent = visible + ' 篇';
       if (emptyEl) emptyEl.classList.toggle('visible', visible === 0);
     }
-    navBtns.forEach(b => b.addEventListener('click', () => setFilter(b.dataset.cat)));
+    navBtns.forEach(b => b.addEventListener('click', () => {
+      setFilter(b.dataset.cat);
+      document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
     topicRows.forEach(r => r.addEventListener('click', () => {
       setFilter(r.dataset.filter);
       document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -183,6 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const style = document.createElement('style');
       style.id = tocStyleId;
       style.textContent = `
+        .toc-widget { max-height: calc(100vh - 120px) !important; }
+        .toc-body { max-height: calc(100vh - 180px) !important; overflow-y: auto !important; overscroll-behavior: contain; }
+        .toc-body::-webkit-scrollbar { width: 8px; }
+        .toc-body::-webkit-scrollbar-thumb { background: rgba(148,163,184,.35); border-radius: 999px; }
+        .toc-body::-webkit-scrollbar-track { background: transparent; }
         .toc-item { font-size: .76rem !important; line-height: 1.7 !important; }
         .toc-item--h3 { font-size: .72rem !important; }
       `;
