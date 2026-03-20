@@ -415,8 +415,9 @@ def estimate_read_time(md: str) -> str:
     md = re.sub(r"`[^`]+`", "", md)
     cjk = len(re.findall(r"[\u4e00-\u9fff]", md))
     words = len(re.findall(r"[A-Za-z0-9]+", md))
-    total = cjk + words
-    mins = max(1, int(math.ceil(total / 500)))
+    # Mixed-language estimate:
+    # Chinese reading speed ~300 chars/min, English ~200 words/min.
+    mins = max(1, int(math.ceil((cjk / 300) + (words / 200))))
     return f"约 {mins} 分钟"
 
 
@@ -702,7 +703,8 @@ def main() -> None:
         title = fm.get("title") or extract_title(md_body) or guess_title(html) or "未命名文章"
         excerpt = fm.get("description") or fm.get("excerpt") or extract_excerpt(md_body) or guess_excerpt(html) or "新文章"
         date_str = fm.get("date") or guess_date(html) or date.today().isoformat()
-        read_label = fm.get("read") or guess_read(html) or estimate_read_time(md_body)
+        # In repair mode, recompute read time unless front matter explicitly pins it.
+        read_label = fm.get("read") or estimate_read_time(md_body)
 
         cat = src.parent.name
         if cat not in CATEGORIES:

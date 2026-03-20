@@ -7,8 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const src = text || '';
     const cjkCount = (src.match(/[\u4e00-\u9fff]/g) || []).length;
     const wordCount = (src.match(/[A-Za-z0-9_]+/g) || []).length;
-    const total = cjkCount + wordCount;
-    return Math.max(1, Math.ceil(total / 500));
+    // Mixed-language estimate:
+    // Chinese reading speed ~300 chars/min, English ~200 words/min.
+    const minutes = (cjkCount / 300) + (wordCount / 200);
+    return Math.max(1, Math.ceil(minutes));
   }
 
   /* ── 滚动时导航栏加背景 ── */

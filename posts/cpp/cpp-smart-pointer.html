@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"/>
 <!--
   ╔══════════════════════════════════════════════════╗
   ║  新文章模板 — 使用说明                              ║
@@ -18,7 +19,7 @@
 <!-- ① 改这里：页面标题 -->
 <title>万字长文详解c++ 智能指针: 原理、应用和陷阱 — QiangCraft</title>
 <!-- ② 改这里：摘要描述 -->
-<meta name="description" content="本篇文章详细介绍了C++智能指针的原理、应用与陷阱。 智能指针是C++11引入的新特性，本文通过丰富的代码实例介绍了三种智能指针：`std::unique_ptr`、`std::shared_ptr`和`std::weak_ptr`，并介绍了它们的原理、使用方法和适用场景。本文最后还介绍了智能指针的一些陷阱，以及如何避免这些陷阱。"/>
+<meta name="description" content="在C++中，动态内存的管理是通过一对运算符来完成的：new，在动态内存中为对象分配空间并返回一个指向该对象的指针，我们可以选择对对象进行初始化；delete，接受一个动态对象的指针，销毁该对象，并释放与之关联的内存。"/>
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
@@ -227,13 +228,13 @@ pre.code-block .lang-label {
       <!-- ④ 改日期和阅读时间 -->
       <span class="post-head-date">2026-03-20</span>
       <span class="post-head-dot"></span>
-      <span class="post-head-read">约 9 分钟</span>
+      <span class="post-head-read">约 16 分钟</span>
     </div>
 
     <!-- ⑤ 改标题 -->
     <h1 class="post-title">万字长文详解c++ 智能指针: 原理、应用和陷阱</h1>
     <!-- ⑥ 改副标题/摘要（可选） -->
-    <p class="post-subtitle">本篇文章详细介绍了C++智能指针的原理、应用与陷阱。 智能指针是C++11引入的新特性，本文通过丰富的代码实例介绍了三种智能指针：`std::unique_ptr`、`std::shared_ptr`和`std::weak_ptr`，并介绍了它们的原理、使用方法和适用场景。本文最后还介绍了智能指针的一些陷阱，以及如何避免这些陷阱。</p>
+    <p class="post-subtitle">在C++中，动态内存的管理是通过一对运算符来完成的：new，在动态内存中为对象分配空间并返回一个指向该对象的指针，我们可以选择对对象进行初始化；delete，接受一个动态对象的指针，销毁该对象，并释放与之关联的内存。</p>
   </div>
 </section>
 
