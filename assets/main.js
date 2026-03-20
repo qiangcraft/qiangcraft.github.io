@@ -139,6 +139,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /* ── 首页：微信二维码弹窗 ── */
+  const wechatModal = document.getElementById('wechat-modal');
+  if (wechatModal) {
+    const openers = document.querySelectorAll('[data-open-wechat]');
+    const closeBtn = document.getElementById('wechat-close');
+    const qr = document.getElementById('wechat-qr');
+    const tip = document.getElementById('wechat-tip');
+
+    const openModal = () => {
+      wechatModal.classList.add('is-open');
+      wechatModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    };
+    const closeModal = () => {
+      wechatModal.classList.remove('is-open');
+      wechatModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    };
+
+    openers.forEach(el => el.addEventListener('click', e => {
+      e.preventDefault();
+      openModal();
+    }));
+    closeBtn?.addEventListener('click', closeModal);
+    wechatModal.addEventListener('click', e => {
+      if (e.target === wechatModal) closeModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && wechatModal.classList.contains('is-open')) closeModal();
+    });
+    qr?.addEventListener('error', () => {
+      if (tip) tip.textContent = '未找到二维码图片：contact/wechat.jpeg';
+    });
+  }
+
   // 把 Markdown 生成的代码块统一成现有的 code-block 样式
   document.querySelectorAll('pre > code').forEach(code => {
     // 兼容 ```C++ 这类语言名，供 highlight.js 识别
