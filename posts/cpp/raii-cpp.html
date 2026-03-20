@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RAII：C++ 资源管理为何如此优雅 — QiangCraft</title>
+<meta name="description" content="深入理解 RAII 惯用法——为什么它是 C++ 中最重要的设计思想，以及如何正确使用它。"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../assets/style.css"/>
+<style>
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; }
+.post-hero { padding: 7rem 0 3.5rem; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+.post-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 100%);
+  pointer-events: none;
+}
+.post-breadcrumb { display:flex; align-items:center; gap:.5rem; font-family:var(--ff-mono); font-size:.63rem; color:var(--text-3); margin-bottom:1.8rem; position:relative; z-index:1; }
+.post-breadcrumb a { transition:color .2s; } .post-breadcrumb a:hover { color:var(--text); }
+.post-head-meta { display:flex; align-items:center; gap:.75rem; margin-bottom:1.2rem; position:relative; z-index:1; }
+.post-head-date { font-family:var(--ff-mono); font-size:.65rem; color:var(--text-3); letter-spacing:.06em; }
+.post-head-read { font-family:var(--ff-mono); font-size:.65rem; color:var(--text-3); }
+.post-head-dot { width:3px; height:3px; border-radius:50%; background:var(--text-3); }
+h1.post-title { font-family:var(--ff-serif); font-weight:600; font-size:clamp(1.9rem,4vw,3rem); line-height:1.22; letter-spacing:-.02em; color:var(--text); margin-bottom:1.2rem; position:relative; z-index:1; }
+.post-subtitle { font-size:1.05rem; color:var(--text-2); line-height:1.8; max-width:600px; position:relative; z-index:1; }
+.post-layout { display:grid; grid-template-columns:1fr 220px; gap:4rem; padding:3.5rem 0 6rem; align-items:start; }
+.prose { font-size:1.02rem; color:var(--text-2); line-height:1.9; }
+.prose p { margin-bottom:1.4rem; } .prose p:last-child { margin-bottom:0; }
+.prose h2 { font-family:var(--ff-serif); font-size:1.5rem; font-weight:600; color:var(--text); letter-spacing:-.01em; line-height:1.3; margin:2.8rem 0 1rem; }
+.prose h3 { font-family:var(--ff-sans); font-size:1.05rem; font-weight:600; color:var(--text); margin:2rem 0 .8rem; }
+.prose strong { color:var(--text); font-weight:600; } .prose em { font-style:italic; }
+.prose a { color:var(--cpp); border-bottom:1px solid rgba(167,139,250,.3); transition:border-color .2s; }
+.prose a:hover { border-color:var(--cpp); }
+.prose ul, .prose ol { margin:1rem 0 1.4rem 1.2rem; display:flex; flex-direction:column; gap:.4rem; }
+.prose ul li { list-style:disc; padding-left:.4rem; } .prose ol li { list-style:decimal; padding-left:.4rem; }
+.prose blockquote { border-left:3px solid var(--cpp); margin:1.6rem 0; padding:.8rem 1.4rem; background:rgba(167,139,250,.05); border-radius:0 var(--r) var(--r) 0; color:var(--text-2); font-style:italic; }
+.prose hr { border:none; border-top:1px solid var(--border); margin:2.5rem 0; }
+pre.code-block { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r); padding:1.2rem 1.4rem; margin:1.4rem 0; font-family:var(--ff-mono); font-size:.78rem; line-height:1.8; color:var(--text-2); overflow-x:auto; }
+pre.code-block .lang-label { display:block; font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); margin-bottom:.6rem; padding-bottom:.5rem; border-bottom:1px solid var(--border); }
+.copy-btn { position:absolute; top:.75rem; right:.75rem; font-family:var(--ff-mono); font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-3); background:var(--bg-3); border:1px solid var(--border); padding:.2rem .55rem; border-radius:var(--r); cursor:pointer; transition:color .2s, border-color .2s; }
+.copy-btn:hover { color:var(--text); border-color:var(--border-2); }
+.prose code { font-family:var(--ff-mono); font-size:.82em; background:var(--bg-3); padding:.15em .45em; border-radius:3px; color:var(--cpp); }
+.post-footer-nav { margin-top:3rem; padding-top:2rem; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+.post-nav-link { display:flex; flex-direction:column; gap:.3rem; max-width:280px; }
+.post-nav-label { font-family:var(--ff-mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); }
+.post-nav-title { font-family:var(--ff-serif); font-size:.95rem; color:var(--text-2); line-height:1.4; transition:color .2s; }
+.post-nav-link:hover .post-nav-title { color:var(--text); }
+.post-nav-link--next { text-align:right; }
+.toc-sidebar { position:sticky; top:78px; }
+.toc-widget { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; }
+.toc-head { padding:.75rem 1.1rem; border-bottom:1px solid var(--border); font-family:var(--ff-mono); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-3); display:flex; align-items:center; gap:.5rem; }
+.toc-dot { width:5px; height:5px; border-radius:50%; }
+.toc-body { padding:.8rem 0; }
+.toc-item { display:block; padding:.38rem 1.1rem; font-family:var(--ff-mono); font-size:.65rem; color:var(--text-3); letter-spacing:.03em; transition:color .2s, background .2s; border-left:2px solid transparent; }
+.toc-item:hover, .toc-item.active { color:var(--text); background:var(--bg-3); border-left-color:var(--cpp); }
+.toc-item--h3 { padding-left:2rem; font-size:.62rem; }
+@media (max-width:900px) { .post-layout { grid-template-columns:1fr; } .toc-sidebar { display:none; } }
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="container">
+    <nav class="nav">
+      <a href="../../index.html" class="nav-logo">
+        <span class="logo-bracket">[</span>qiangcraft<span class="logo-bracket">]</span>
+        <span class="logo-cursor"></span>
+      </a>
+      <div class="nav-right">
+        <a href="../../index.html" class="nav-text-link">← 返回首页</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="post-hero">
+  <div class="container--narrow">
+    <div class="post-breadcrumb">
+      <a href="../../index.html">首页</a>
+      <span>/</span>
+      <span class="cat cat--cpp"><span class="cat-dot"></span>C++</span>
+    </div>
+    <div class="post-head-meta">
+      <span class="post-head-date">2026-03-05</span>
+      <span class="post-head-dot"></span>
+      <span class="post-head-read">约 9 分钟</span>
+    </div>
+    <h1 class="post-title">RAII：C++ 资源管理为何如此优雅</h1>
+    <p class="post-subtitle">理解 RAII 是真正掌握 C++ 的关键一步。它不是一个技巧，而是一种思维方式。</p>
+  </div>
+</section>
+
+<main>
+  <div class="container">
+    <div class="post-layout">
+      <article class="post-body reveal">
+        <div class="prose">
+
+          <p>刚开始学 C++ 的时候，我觉得手动管理内存很麻烦——<code>new</code> 之后得记得 <code>delete</code>，中间一旦抛出异常就内存泄漏了。直到我真正理解了 RAII，才意识到这门语言的设计者早就给出了答案。</p>
+
+          <h2 id="what-is-raii">RAII 是什么</h2>
+          <p><strong>RAII</strong>，全称 Resource Acquisition Is Initialization（资源获取即初始化）。名字有点绕，核心思想其实很简单：</p>
+
+          <blockquote>把资源的生命周期绑定到对象的生命周期上。对象构造时获取资源，对象析构时释放资源。</blockquote>
+
+          <p>C++ 保证：只要一个对象的作用域结束（不论是正常退出还是异常退出），它的析构函数<strong>一定会被调用</strong>。RAII 就是利用了这一保证。</p>
+
+          <h2 id="before-raii">没有 RAII 的世界</h2>
+          <p>先看一段没有 RAII 的代码，有什么问题？</p>
+
+          <pre class="code-block"><span class="lang-label">C++ — 危险写法</span><span class="kw">void</span> <span class="fn">processFile</span>(<span class="kw">const</span> std::string& path) {
+    FILE* f = <span class="fn">fopen</span>(path.<span class="fn">c_str</span>(), <span class="str">"r"</span>);
+    <span class="kw">if</span> (!f) <span class="kw">return</span>;
+
+    <span class="cmt">// 如果这里抛出异常……</span>
+    doSomethingRisky();
+
+    <span class="fn">fclose</span>(f); <span class="cmt">// 可能永远执行不到！</span>
+}</pre>
+
+          <p>如果 <code>doSomethingRisky()</code> 抛出异常，<code>fclose</code> 就再也不会被调用，文件句柄泄漏。要修复它，你得用 try/catch 把每一个退出路径都包起来——又丑又容易漏。</p>
+
+          <h2 id="raii-solution">用 RAII 解决</h2>
+          <p>写一个简单的文件句柄包装类：</p>
+
+          <pre class="code-block"><span class="lang-label">C++</span><span class="kw">class</span> <span class="fn">FileHandle</span> {
+    FILE* f_ = <span class="kw">nullptr</span>;
+<span class="kw">public</span>:
+    <span class="kw">explicit</span> <span class="fn">FileHandle</span>(<span class="kw">const</span> <span class="kw">char</span>* path, <span class="kw">const</span> <span class="kw">char</span>* mode)
+        : f_(<span class="fn">fopen</span>(path, mode)) {}
+
+    ~<span class="fn">FileHandle</span>() {
+        <span class="kw">if</span> (f_) <span class="fn">fclose</span>(f_);
+    }
+
+    <span class="cmt">// 禁止拷贝，防止双重释放</span>
+    <span class="fn">FileHandle</span>(<span class="kw">const</span> FileHandle&) = <span class="kw">delete</span>;
+    FileHandle& <span class="kw">operator</span>=(<span class="kw">const</span> FileHandle&) = <span class="kw">delete</span>;
+
+    FILE* <span class="fn">get</span>() <span class="kw">const</span> { <span class="kw">return</span> f_; }
+    <span class="kw">bool</span> <span class="fn">valid</span>() <span class="kw">const</span> { <span class="kw">return</span> f_ != <span class="kw">nullptr</span>; }
+};</pre>
+
+          <p>现在函数变得干净很多：</p>
+
+          <pre class="code-block"><span class="lang-label">C++ — 安全写法</span><span class="kw">void</span> <span class="fn">processFile</span>(<span class="kw">const</span> std::string& path) {
+    <span class="fn">FileHandle</span> f(path.<span class="fn">c_str</span>(), <span class="str">"r"</span>);
+    <span class="kw">if</span> (!f.<span class="fn">valid</span>()) <span class="kw">return</span>;
+
+    <span class="fn">doSomethingRisky</span>(); <span class="cmt">// 抛异常也没关系</span>
+    <span class="cmt">// f 的析构函数自动调用 fclose</span>
+}</pre>
+
+          <p>无论函数怎么退出——正常返回、提前 return、还是异常——<code>FileHandle</code> 的析构函数都会正确关闭文件。</p>
+
+          <h2 id="stdlib-raii">标准库里的 RAII</h2>
+          <p>好消息是：现代 C++ 标准库已经帮你实现了最常用的 RAII 包装器，你几乎不需要自己写。</p>
+          <ul>
+            <li><code>std::unique_ptr</code> / <code>std::shared_ptr</code>：管理堆内存</li>
+            <li><code>std::lock_guard</code> / <code>std::unique_lock</code>：管理互斥锁</li>
+            <li><code>std::fstream</code>：管理文件流</li>
+            <li><code>std::vector</code>、<code>std::string</code>：管理动态数组内存</li>
+          </ul>
+
+          <pre class="code-block"><span class="lang-label">C++ — 使用智能指针</span><span class="cmt">// 不要这样：</span>
+Widget* w = <span class="kw">new</span> <span class="fn">Widget</span>();
+<span class="cmt">// ... 记得 delete w; ← 总有一天会忘</span>
+
+<span class="cmt">// 要这样：</span>
+<span class="kw">auto</span> w = std::<span class="fn">make_unique</span>&lt;Widget&gt;();
+<span class="cmt">// 作用域结束，自动释放，零心智负担</span></pre>
+
+          <h2 id="move-semantics">RAII 与移动语义</h2>
+          <p>RAII 对象通常应该是<strong>可移动但不可拷贝</strong>的。道理很简单：一份资源只能有一个所有者，拷贝会导致双重释放。</p>
+
+          <pre class="code-block"><span class="lang-label">C++</span><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">class</span> <span class="fn">UniqueHandle</span> {
+    T* ptr_ = <span class="kw">nullptr</span>;
+<span class="kw">public</span>:
+    <span class="kw">explicit</span> <span class="fn">UniqueHandle</span>(T* p) : ptr_(p) {}
+    ~<span class="fn">UniqueHandle</span>() { <span class="kw">delete</span> ptr_; }
+
+    <span class="cmt">// 禁止拷贝</span>
+    <span class="fn">UniqueHandle</span>(<span class="kw">const</span> UniqueHandle&) = <span class="kw">delete</span>;
+    UniqueHandle& <span class="kw">operator</span>=(<span class="kw">const</span> UniqueHandle&) = <span class="kw">delete</span>;
+
+    <span class="cmt">// 允许移动：转移所有权</span>
+    <span class="fn">UniqueHandle</span>(UniqueHandle&& other) <span class="kw">noexcept</span>
+        : ptr_(std::<span class="fn">exchange</span>(other.ptr_, <span class="kw">nullptr</span>)) {}
+
+    UniqueHandle& <span class="kw">operator</span>=(UniqueHandle&& other) <span class="kw">noexcept</span> {
+        <span class="kw">if</span> (<span class="kw">this</span> != &other) {
+            <span class="kw">delete</span> ptr_;
+            ptr_ = std::<span class="fn">exchange</span>(other.ptr_, <span class="kw">nullptr</span>);
+        }
+        <span class="kw">return</span> *<span class="kw">this</span>;
+    }
+};</pre>
+
+          <h2 id="summary">总结</h2>
+          <p>RAII 是 C++ 中最重要的惯用法，没有之一。它的好处是：</p>
+          <ul>
+            <li><strong>异常安全</strong>：资源在任何退出路径下都能被正确释放</li>
+            <li><strong>代码简洁</strong>：不需要手动在每个退出点写清理代码</li>
+            <li><strong>所有权清晰</strong>：谁拥有资源，谁负责释放，一目了然</li>
+          </ul>
+
+          <p>下次写 C++ 遇到需要管理资源的场景，先问自己：<em>有没有已经存在的 RAII 包装器？</em> 答案通常是有。实在没有，就花几分钟自己写一个，后面会省去无数麻烦。</p>
+
+        </div>
+
+        <nav class="post-footer-nav">
+          <a href="./move-vs-forward.html" class="post-nav-link post-nav-link--prev">
+            <span class="post-nav-label">← 上一篇</span>
+            <span class="post-nav-title">std::move 与 std::forward，我终于搞懂了</span>
+          </a>
+        </nav>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-widget">
+          <div class="toc-head"><span class="toc-dot" style="background:var(--cpp)"></span>目录</div>
+          <nav class="toc-body" id="toc">
+            <a href="#what-is-raii"  class="toc-item">RAII 是什么</a>
+            <a href="#before-raii"   class="toc-item">没有 RAII 的世界</a>
+            <a href="#raii-solution" class="toc-item">用 RAII 解决</a>
+            <a href="#stdlib-raii"   class="toc-item">标准库里的 RAII</a>
+            <a href="#move-semantics" class="toc-item">RAII 与移动语义</a>
+            <a href="#summary"       class="toc-item">总结</a>
+          </nav>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo"><span style="color:var(--text-3)">[</span>qiangcraft<span style="color:var(--text-3)">]</span></div>
+      <p class="footer-copy">© 2026 — 写代码，也写人</p>
+      <div class="footer-links">
+        <a href="https://github.com/qiangcraft">GitHub</a>
+        <a href="mailto:hello@qiangcraft.dev">邮件</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="../../assets/main.js"></script>
+<script>
+const tocLinks = document.querySelectorAll('.toc-item');
+const headings = document.querySelectorAll('.prose h2, .prose h3');
+if (tocLinks.length && headings.length) {
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const match = [...tocLinks].find(l => l.getAttribute('href') === '#' + e.target.id);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  headings.forEach(h => io.observe(h));
+}
+</script>
+</body>
+</html>

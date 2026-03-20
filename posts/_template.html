@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<!--
+  ╔══════════════════════════════════════════════════╗
+  ║  新文章模板 — 使用说明                              ║
+  ║  1. 复制此文件到 posts/<标签>/ 目录，改个有意义的英文名 ║
+  ║     例：posts/cpp/my-new-post.html              ║
+  ║  2. 修改下方 <title> 和 <meta> 内容               ║
+  ║  3. 填写文章头部信息（标题/日期/分类/阅读时间）       ║
+  ║  4. 在 <article> 里写正文                         ║
+  ║  5. 回到 index.html，在文章列表里加一张卡片         ║
+  ╚══════════════════════════════════════════════════╝
+-->
+
+<!-- ① 改这里：页面标题 -->
+<title>文章标题 — QiangCraft</title>
+<!-- ② 改这里：摘要描述 -->
+<meta name="description" content="文章摘要，100 字以内。"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../assets/style.css"/>
+<style>
+/* ── 文章页专属样式 ── */
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; }
+
+/* 文章头 */
+.post-hero {
+  padding: 7rem 0 3.5rem;
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.post-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 100%);
+  pointer-events: none;
+}
+.post-breadcrumb {
+  display: flex; align-items: center; gap: .5rem;
+  font-family: var(--ff-mono); font-size: .63rem;
+  color: var(--text-3); margin-bottom: 1.8rem;
+  position: relative; z-index: 1;
+}
+.post-breadcrumb a { transition: color .2s; }
+.post-breadcrumb a:hover { color: var(--text); }
+.post-breadcrumb-sep { color: var(--text-3); }
+
+.post-head-meta {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: 1.2rem; position: relative; z-index: 1;
+}
+.post-head-date { font-family: var(--ff-mono); font-size: .65rem; color: var(--text-3); letter-spacing: .06em; }
+.post-head-read { font-family: var(--ff-mono); font-size: .65rem; color: var(--text-3); }
+.post-head-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-3); }
+
+h1.post-title {
+  font-family: var(--ff-serif); font-weight: 600;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.22; letter-spacing: -.02em; color: var(--text);
+  margin-bottom: 1.2rem; position: relative; z-index: 1;
+}
+.post-subtitle {
+  font-size: 1.05rem; color: var(--text-2); line-height: 1.8;
+  max-width: 600px; position: relative; z-index: 1;
+}
+
+/* 正文 */
+.post-layout {
+  display: grid; grid-template-columns: 1fr 220px;
+  gap: 4rem; padding: 3.5rem 0 6rem; align-items: start;
+}
+.post-body { min-width: 0; }
+
+/* 正文排版 */
+.prose { font-size: 1.02rem; color: var(--text-2); line-height: 1.9; }
+.prose p { margin-bottom: 1.4rem; }
+.prose p:last-child { margin-bottom: 0; }
+.prose h2 {
+  font-family: var(--ff-serif); font-size: 1.5rem; font-weight: 600;
+  color: var(--text); letter-spacing: -.01em; line-height: 1.3;
+  margin: 2.8rem 0 1rem;
+}
+.prose h3 {
+  font-family: var(--ff-sans); font-size: 1.05rem; font-weight: 600;
+  color: var(--text); margin: 2rem 0 .8rem;
+}
+.prose strong { color: var(--text); font-weight: 600; }
+.prose em { font-style: italic; }
+.prose a { color: var(--cs); border-bottom: 1px solid rgba(91,156,246,.3); transition: border-color .2s; }
+.prose a:hover { border-color: var(--cs); }
+.prose ul, .prose ol { margin: 1rem 0 1.4rem 1.2rem; display: flex; flex-direction: column; gap: .4rem; }
+.prose ul li { list-style: disc; padding-left: .4rem; }
+.prose ol li { list-style: decimal; padding-left: .4rem; }
+.prose blockquote {
+  border-left: 3px solid var(--cs);
+  margin: 1.6rem 0; padding: .8rem 1.4rem;
+  background: rgba(91,156,246,.05); border-radius: 0 var(--r) var(--r) 0;
+  color: var(--text-2); font-style: italic;
+}
+.prose hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+/* 代码块 */
+pre.code-block {
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 1.2rem 1.4rem; margin: 1.4rem 0;
+  font-family: var(--ff-mono); font-size: .78rem; line-height: 1.8;
+  color: var(--text-2); overflow-x: auto;
+}
+pre.code-block .lang-label {
+  display: block; font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: .6rem; padding-bottom: .5rem;
+  border-bottom: 1px solid var(--border);
+}
+.copy-btn {
+  position: absolute; top: .75rem; right: .75rem;
+  font-family: var(--ff-mono); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-3); background: var(--bg-3); border: 1px solid var(--border);
+  padding: .2rem .55rem; border-radius: var(--r); cursor: pointer;
+  transition: color .2s, border-color .2s;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--border-2); }
+
+/* 行内代码 */
+.prose code {
+  font-family: var(--ff-mono); font-size: .82em;
+  background: var(--bg-3); padding: .15em .45em;
+  border-radius: 3px; color: var(--cpp);
+}
+
+/* 文章底部 */
+.post-footer-nav {
+  margin-top: 3rem; padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+}
+.post-nav-link {
+  display: flex; flex-direction: column; gap: .3rem; max-width: 280px;
+}
+.post-nav-label { font-family: var(--ff-mono); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.post-nav-title { font-family: var(--ff-serif); font-size: .95rem; color: var(--text-2); line-height: 1.4; transition: color .2s; }
+.post-nav-link:hover .post-nav-title { color: var(--text); }
+.post-nav-link--next { text-align: right; }
+
+/* 右侧目录 */
+.toc-sidebar { position: sticky; top: 78px; }
+.toc-widget { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.toc-head {
+  padding: .75rem 1.1rem; border-bottom: 1px solid var(--border);
+  font-family: var(--ff-mono); font-size: .6rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-3);
+  display: flex; align-items: center; gap: .5rem;
+}
+.toc-dot { width: 5px; height: 5px; border-radius: 50%; }
+.toc-body { padding: .8rem 0; }
+.toc-item {
+  display: block; padding: .38rem 1.1rem;
+  font-family: var(--ff-mono); font-size: .65rem; color: var(--text-3);
+  letter-spacing: .03em; transition: color .2s, background .2s;
+  border-left: 2px solid transparent;
+}
+.toc-item:hover, .toc-item.active { color: var(--text); background: var(--bg-3); border-left-color: var(--cs); }
+.toc-item--h3 { padding-left: 2rem; font-size: .62rem; }
+
+@media (max-width: 900px) {
+  .post-layout { grid-template-columns: 1fr; }
+  .toc-sidebar { display: none; }
+}
+@media (max-width: 768px) {
+  .post-footer-nav { flex-direction: column; align-items: flex-start; }
+  .post-nav-link--next { text-align: left; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 导航 ══ -->
+<header id="hdr">
+  <div class="container">
+    <nav class="nav">
+      <a href="../../index.html" class="nav-logo">
+        <span class="logo-bracket">[</span>qiangcraft<span class="logo-bracket">]</span>
+        <span class="logo-cursor"></span>
+      </a>
+      <div class="nav-right">
+        <a href="../../index.html" class="nav-text-link">← 返回首页</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- ══ 文章头 ══ -->
+<section class="post-hero">
+  <div class="container--narrow">
+    <!-- 面包屑 -->
+    <div class="post-breadcrumb">
+      <a href="../../index.html">首页</a>
+      <span class="post-breadcrumb-sep">/</span>
+      <!-- ③ 改分类 -->
+      <span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span>
+    </div>
+
+    <!-- 元信息 -->
+    <div class="post-head-meta">
+      <!-- ④ 改日期和阅读时间 -->
+      <span class="post-head-date">2026-01-01</span>
+      <span class="post-head-dot"></span>
+      <span class="post-head-read">约 10 分钟</span>
+    </div>
+
+    <!-- ⑤ 改标题 -->
+    <h1 class="post-title">在这里写文章标题</h1>
+    <!-- ⑥ 改副标题/摘要（可选） -->
+    <p class="post-subtitle">一两句话介绍这篇文章在讲什么。可以省略。</p>
+  </div>
+</section>
+
+<!-- ══ 正文 ══ -->
+<main>
+  <div class="container">
+    <div class="post-layout">
+
+      <!-- 正文内容 -->
+      <article class="post-body reveal">
+        <div class="prose">
+
+          <!-- ⑦ 从这里开始写正文 ↓ -->
+
+          <p>这是文章的开头段落。用普通的 <code>&lt;p&gt;</code> 标签写文字。</p>
+
+          <h2>第一个小标题</h2>
+          <p>正文内容。可以用 <strong>加粗</strong>、<em>斜体</em>，
+          也可以加 <a href="#">超链接</a>。</p>
+
+          <blockquote>
+            引用块，适合放名言、重要结论或引用别人的话。
+          </blockquote>
+
+          <h2>代码示例</h2>
+          <p>下面是一个 C++ 代码块（会自动添加复制按钮）：</p>
+
+          <!-- 代码块用 pre.code-block，语言标签可以改 -->
+          <pre class="code-block"><span class="lang-label">C++</span><span class="kw">#include</span> <span class="str">&lt;iostream&gt;</span>
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    std::cout &lt;&lt; <span class="str">"Hello, QiangCraft!"</span> &lt;&lt; std::endl;
+    <span class="kw">return</span> <span class="num">0</span>;
+}
+<span class="cmt">// 输出：Hello, QiangCraft!</span></pre>
+
+          <h2>列表示例</h2>
+          <ul>
+            <li>第一点内容</li>
+            <li>第二点内容</li>
+            <li>第三点内容</li>
+          </ul>
+
+          <hr/>
+
+          <p>文章结束段落，可以写总结或下一步思考方向。</p>
+
+          <!-- ⑦ 正文到这里结束 ↑ -->
+
+        </div>
+
+        <!-- 文章底部翻页 -->
+        <nav class="post-footer-nav">
+          <!-- ⑧ 上一篇（没有就删掉这个 a 标签） -->
+          <a href="./previous-post.html" class="post-nav-link post-nav-link--prev">
+            <span class="post-nav-label">← 上一篇</span>
+            <span class="post-nav-title">上一篇文章的标题</span>
+          </a>
+          <!-- ⑨ 下一篇（没有就删掉这个 a 标签） -->
+          <a href="./next-post.html" class="post-nav-link post-nav-link--next">
+            <span class="post-nav-label">下一篇 →</span>
+            <span class="post-nav-title">下一篇文章的标题</span>
+          </a>
+        </nav>
+      </article>
+
+      <!-- 右侧目录（自动高亮） -->
+      <aside class="toc-sidebar">
+        <div class="toc-widget">
+          <div class="toc-head">
+            <!-- ⑩ 改分类颜色：personal/cs/cpp/robotics -->
+            <span class="toc-dot" style="background:var(--cs)"></span>
+            目录
+          </div>
+          <nav class="toc-body" id="toc">
+            <!-- ⑪ 手动填写目录（和正文 h2/h3 对应） -->
+            <a href="#section-1" class="toc-item">第一个小标题</a>
+            <a href="#section-2" class="toc-item">代码示例</a>
+            <a href="#section-3" class="toc-item">列表示例</a>
+          </nav>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</main>
+
+<!-- ══ 页脚 ══ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo"><span style="color:var(--text-3)">[</span>qiangcraft<span style="color:var(--text-3)">]</span></div>
+      <p class="footer-copy">© 2026 — 写代码，也写人</p>
+      <div class="footer-links">
+        <a href="https://github.com/qiangcraft">GitHub</a>
+        <a href="mailto:hello@qiangcraft.dev">邮件</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="../../assets/main.js"></script>
+<script>
+/* 目录自动高亮 */
+const tocLinks = document.querySelectorAll('.toc-item');
+const headings = document.querySelectorAll('.prose h2, .prose h3');
+if (tocLinks.length && headings.length) {
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const match = [...tocLinks].find(l => l.getAttribute('href') === '#' + e.target.id);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  headings.forEach(h => io.observe(h));
+}
+</script>
+</body>
+</html>
