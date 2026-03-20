@@ -1,0 +1,869 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Import an existing HTML post into posts/<category>/ and update index.html.
+
+Usage:
+  python3 tools/import_post.py --file /path/to/post.html --cat robotics
+"""
+
+from __future__ import annotations
+
+import argparse
+import html as html_lib
+import math
+import os
+import re
+import shutil
+import webbrowser
+from datetime import date, datetime
+from pathlib import Path
+from typing import Optional
+
+ROOT = Path(__file__).resolve().parents[1]
+INDEX = ROOT / "index.html"
+POSTS = ROOT / "posts"
+
+CATEGORIES = {
+    "cs": {"name": "计算机基础", "class": "cat--cs"},
+    "cpp": {"name": "C++", "class": "cat--cpp"},
+    "robotics": {"name": "机器人", "class": "cat--robotics"},
+    "personal": {"name": "随笔", "class": "cat--personal"},
+}
+
+
+def read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def write_text(path: Path, text: str) -> None:
+    path.write_text(text, encoding="utf-8")
+
+
+def strip_tags(s: str) -> str:
+    s = re.sub(r"<[^>]+>", "", s)
+    return html_lib.unescape(s).strip()
+
+
+def extract_first(html: str, pattern: str) -> str | None:
+    m = re.search(pattern, html, re.S | re.I)
+    if not m:
+        return None
+    return strip_tags(m.group(1))
+
+
+def extract_attr(html: str, pattern: str) -> str | None:
+    m = re.search(pattern, html, re.S | re.I)
+    if not m:
+        return None
+    return html_lib.unescape(m.group(1)).strip()
+
+
+def guess_title(html: str) -> str | None:
+    # Prefer real title tag line; avoid matching <title> text inside HTML comments.
+    m = re.search(r"(?im)^\s*<title>\s*([^<]+?)\s*</title>\s*$", html)
+    title = m.group(1).strip() if m else None
+    if title:
+        return title.replace("— QiangCraft", "").strip()
+    h1 = extract_first(html, r"<h1[^>]*>(.*?)</h1>")
+    return h1
+
+
+def guess_excerpt(html: str) -> str | None:
+    meta = extract_attr(html, r"<meta\s+name=\"description\"\s+content=\"(.*?)\"")
+    if meta:
+        return meta
+    sub = extract_first(html, r"<p\s+class=\"post-subtitle\"[^>]*>(.*?)</p>")
+    if sub:
+        return sub
+    sub2 = extract_first(html, r"<p\s+class=\"subtitle\"[^>]*>(.*?)</p>")
+    return sub2
+
+
+def guess_date(html: str) -> str | None:
+    d = extract_first(html, r"<span\s+class=\"post-head-date\"[^>]*>(.*?)</span>")
+    if d:
+        return d
+    return None
+
+
+def guess_read(html: str) -> str | None:
+    r = extract_first(html, r"<span\s+class=\"post-head-read\"[^>]*>(.*?)</span>")
+    return r
+
+
+def prompt_if_missing(label: str, value: str | None, default: str | None = None) -> str:
+    if value:
+        return value
+    prompt = f"{label}"
+    if default:
+        prompt += f" [默认: {default}]"
+    prompt += ": "
+    v = input(prompt).strip()
+    if not v and default is not None:
+        return default
+    return v
+
+
+def ui_pick_file() -> Optional[str]:
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception:
+        return None
+    root = tk.Tk()
+    root.withdraw()
+    path = filedialog.askopenfilename(
+        title="选择要导入的 HTML 文件",
+        filetypes=[("HTML files", "*.html"), ("All files", "*.*")]
+    )
+    root.destroy()
+    return path or None
+
+
+def ui_ask_string(title: str, prompt: str, default: str | None = None) -> Optional[str]:
+    try:
+        import tkinter as tk
+        from tkinter import simpledialog
+    except Exception:
+        return None
+    root = tk.Tk()
+    root.withdraw()
+    value = simpledialog.askstring(title, prompt, initialvalue=default)
+    root.destroy()
+    if value is None:
+        return None
+    return value.strip()
+
+
+def ui_pick_category(default: str = "robotics") -> Optional[str]:
+    try:
+        import tkinter as tk
+        from tkinter import ttk
+    except Exception:
+        return None
+    root = tk.Tk()
+    root.title("选择分类")
+    root.resizable(False, False)
+
+    value = tk.StringVar(value=default)
+    label = ttk.Label(root, text="选择分类 (cs/cpp/robotics/personal):")
+    label.grid(row=0, column=0, padx=12, pady=(12, 6), sticky="w")
+    combo = ttk.Combobox(root, textvariable=value, values=list(CATEGORIES.keys()), state="readonly", width=24)
+    combo.grid(row=1, column=0, padx=12, pady=(0, 8), sticky="w")
+
+    result: Optional[str] = None
+
+    def confirm() -> None:
+        nonlocal result
+        result = value.get().strip()
+        root.destroy()
+
+    def cancel() -> None:
+        root.destroy()
+
+    btns = ttk.Frame(root)
+    btns.grid(row=2, column=0, padx=12, pady=(0, 12), sticky="e")
+    ttk.Button(btns, text="确定", command=confirm).grid(row=0, column=0, padx=(0, 8))
+    ttk.Button(btns, text="取消", command=cancel).grid(row=0, column=1)
+
+    root.protocol("WM_DELETE_WINDOW", cancel)
+    root.mainloop()
+    return result
+
+
+def ui_choose_mode() -> Optional[str]:
+    try:
+        import tkinter as tk
+        from tkinter import ttk
+    except Exception:
+        return None
+    root = tk.Tk()
+    root.title("QiangCraft · 导入文章")
+    root.resizable(False, False)
+    root.geometry("520x260")
+
+    wrap = ttk.Frame(root, padding=16)
+    wrap.pack(fill="both", expand=True)
+
+    ttk.Label(wrap, text="选择导入方式", font=("Helvetica Neue", 16, "bold")).pack(anchor="w")
+    ttk.Label(wrap, text="你可以导入现成 HTML，或用 Markdown 生成新文章。", foreground="#555").pack(anchor="w", pady=(4, 12))
+
+    cards = ttk.Frame(wrap)
+    cards.pack(fill="x", expand=True)
+    cards.columnconfigure(0, weight=1)
+    cards.columnconfigure(1, weight=1)
+
+    result: Optional[str] = None
+
+    def pick_html() -> None:
+        nonlocal result
+        result = "html"
+        root.destroy()
+
+    def pick_md() -> None:
+        nonlocal result
+        result = "md"
+        root.destroy()
+
+    card1 = ttk.Frame(cards, padding=12, relief="ridge")
+    card1.grid(row=0, column=0, padx=(0, 8), sticky="nsew")
+    ttk.Label(card1, text="导入现成 HTML", font=("Helvetica Neue", 13, "bold")).pack(anchor="w")
+    ttk.Label(card1, text="从已有的 .html 文件导入到 posts/<分类>/", foreground="#666").pack(anchor="w", pady=(4, 10))
+    ttk.Button(card1, text="选择 HTML 文件", command=pick_html).pack(anchor="w")
+
+    card2 = ttk.Frame(cards, padding=12, relief="ridge")
+    card2.grid(row=0, column=1, padx=(8, 0), sticky="nsew")
+    ttk.Label(card2, text="Markdown 生成", font=("Helvetica Neue", 13, "bold")).pack(anchor="w")
+    ttk.Label(card2, text="用 Markdown 编辑器生成 HTML 并自动导入", foreground="#666").pack(anchor="w", pady=(4, 10))
+    ttk.Button(card2, text="打开编辑器", command=pick_md).pack(anchor="w")
+
+    root.mainloop()
+    return result
+
+
+def ui_markdown_import(default_filename: str, default_cat: str, default_md: str, template_html: str) -> Optional[dict]:
+    try:
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+    except Exception:
+        return None
+
+    root = tk.Tk()
+    root.title("导入 Markdown 生成文章")
+    root.geometry("860x680")
+
+    form = ttk.Frame(root, padding=12)
+    form.pack(fill="x")
+
+    ttk.Label(form, text="文件名（不含路径）").grid(row=0, column=0, sticky="w")
+    filename_var = tk.StringVar(value=default_filename)
+    filename_entry = ttk.Entry(form, textvariable=filename_var, width=40)
+    filename_entry.grid(row=0, column=1, sticky="w", padx=(8, 0))
+
+    ttk.Label(form, text="分类").grid(row=0, column=2, sticky="w", padx=(16, 0))
+    cat_var = tk.StringVar(value=default_cat)
+    cat_combo = ttk.Combobox(form, textvariable=cat_var, values=list(CATEGORIES.keys()), state="readonly", width=18)
+    cat_combo.grid(row=0, column=3, sticky="w", padx=(8, 0))
+
+    editor_wrap = ttk.Frame(root, padding=(12, 6))
+    editor_wrap.pack(fill="both", expand=True)
+
+    ttk.Label(editor_wrap, text="Markdown 内容").pack(anchor="w")
+    text = tk.Text(editor_wrap, wrap="word")
+    text.pack(fill="both", expand=True, pady=(6, 0))
+    text.insert("1.0", default_md)
+
+    btns = ttk.Frame(root, padding=12)
+    btns.pack(fill="x")
+
+    result: Optional[dict] = None
+
+    def preview() -> None:
+        md = text.get("1.0", "end").strip("\n")
+        if not md.strip():
+            messagebox.showwarning("内容为空", "请先输入 Markdown 内容")
+            return
+        cat = cat_var.get().strip()
+        if not cat or cat not in CATEGORIES:
+            messagebox.showwarning("分类错误", "请选择有效分类")
+            return
+
+        fm, md_body = parse_front_matter(md)
+        title = fm.get("title") or extract_title(md_body) or "未命名文章"
+        excerpt = fm.get("description") or fm.get("excerpt") or extract_excerpt(md_body) or "新文章"
+        date_str = fm.get("date") or date.today().isoformat()
+        read_label = fm.get("read") or estimate_read_time(md_body)
+
+        md_clean = clean_markdown_body(md_body, title, excerpt)
+        html_out = apply_template(
+            template_html,
+            title=title,
+            excerpt=excerpt,
+            date_str=date_str,
+            read_text=read_label,
+            cat=cat,
+            markdown=md_clean,
+        )
+
+        prev = tk.Toplevel(root)
+        prev.title("预览 HTML")
+        prev.geometry("860x640")
+        pwrap = ttk.Frame(prev, padding=12)
+        pwrap.pack(fill="both", expand=True)
+        ptext = tk.Text(pwrap, wrap="none")
+        ptext.pack(fill="both", expand=True)
+        ptext.insert("1.0", html_out)
+        ptext.configure(state="disabled")
+
+    def preview_browser() -> None:
+        md = text.get("1.0", "end").strip("\n")
+        if not md.strip():
+            messagebox.showwarning("内容为空", "请先输入 Markdown 内容")
+            return
+        cat = cat_var.get().strip()
+        if not cat or cat not in CATEGORIES:
+            messagebox.showwarning("分类错误", "请选择有效分类")
+            return
+
+        fm, md_body = parse_front_matter(md)
+        title = fm.get("title") or extract_title(md_body) or "未命名文章"
+        excerpt = fm.get("description") or fm.get("excerpt") or extract_excerpt(md_body) or "新文章"
+        date_str = fm.get("date") or date.today().isoformat()
+        read_text = fm.get("read") or estimate_read_time(md_body)
+
+        md_clean = clean_markdown_body(md_body, title, excerpt)
+        html_out = apply_template(
+            template_html,
+            title=title,
+            excerpt=excerpt,
+            date_str=date_str,
+            read_text=read_text,
+            cat=cat,
+            markdown=md_clean,
+        )
+        # write preview into posts/<cat>/ to keep relative assets working
+        preview_path = POSTS / cat / "_preview.html"
+        preview_path.parent.mkdir(parents=True, exist_ok=True)
+        preview_path.write_text(html_out, encoding="utf-8")
+        webbrowser.open(f"file://{preview_path}")
+
+    def submit() -> None:
+        nonlocal result
+        filename = filename_var.get().strip()
+        cat = cat_var.get().strip()
+        md = text.get("1.0", "end").strip("\n")
+        if not filename:
+            messagebox.showerror("缺少文件名", "请输入文件名，例如 my-post.html")
+            return
+        if not cat or cat not in CATEGORIES:
+            messagebox.showerror("分类错误", "请选择有效分类")
+            return
+        if not md.strip():
+            messagebox.showerror("内容为空", "请填写 Markdown 内容")
+            return
+        result = {"filename": filename, "cat": cat, "markdown": md}
+        root.destroy()
+
+    def cancel() -> None:
+        root.destroy()
+
+    ttk.Button(btns, text="生成并导入", command=submit).pack(side="right")
+    ttk.Button(btns, text="浏览器预览", command=preview_browser).pack(side="right", padx=(0, 8))
+    ttk.Button(btns, text="预览 HTML", command=preview).pack(side="right", padx=(0, 8))
+    ttk.Button(btns, text="取消", command=cancel).pack(side="right", padx=(0, 8))
+
+    root.protocol("WM_DELETE_WINDOW", cancel)
+    root.mainloop()
+    return result
+
+
+def parse_front_matter(md: str) -> tuple[dict, str]:
+    lines = md.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, md
+    meta = {}
+    i = 1
+    while i < len(lines):
+        line = lines[i].strip()
+        if line == "---":
+            body = "\n".join(lines[i + 1 :])
+            return meta, body
+        if ":" in line:
+            k, v = line.split(":", 1)
+            meta[k.strip().lower()] = v.strip()
+        i += 1
+    return {}, md
+
+
+def extract_title(md: str) -> Optional[str]:
+    for line in md.splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
+    return None
+
+
+def extract_excerpt(md: str) -> Optional[str]:
+    lines = md.splitlines()
+    in_code = False
+    para = []
+    for line in lines:
+        l = line.rstrip()
+        if l.strip().startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code:
+            continue
+        if not l.strip():
+            if para:
+                break
+            continue
+        if re.match(r"^#{1,6}\s+", l):
+            continue
+        if re.match(r"^(\-|\*|\d+\.)\s+", l):
+            continue
+        if l.strip().startswith(">"):
+            continue
+        para.append(l.strip())
+    if not para:
+        return None
+    return " ".join(para)
+
+
+def estimate_read_time(md: str) -> str:
+    # remove code fences
+    md = re.sub(r"```.*?```", "", md, flags=re.S)
+    md = re.sub(r"`[^`]+`", "", md)
+    cjk = len(re.findall(r"[\u4e00-\u9fff]", md))
+    words = len(re.findall(r"[A-Za-z0-9]+", md))
+    total = cjk + words
+    mins = max(1, int(math.ceil(total / 500)))
+    return f"约 {mins} 分钟"
+
+
+def _norm_text(s: str) -> str:
+    return re.sub(r"\s+", "", (s or "")).strip().lower()
+
+
+def clean_markdown_body(md: str, title: str, excerpt: str) -> str:
+    lines = md.splitlines()
+    i = 0
+
+    # Drop leading blank lines
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+
+    # Drop first H1 if it duplicates hero title
+    if i < len(lines):
+        m = re.match(r"^#\s+(.*)$", lines[i].strip())
+        if m and _norm_text(m.group(1)) == _norm_text(title):
+            i += 1
+            while i < len(lines) and not lines[i].strip():
+                i += 1
+
+    # Drop first paragraph if it duplicates hero subtitle/excerpt
+    j = i
+    para = []
+    while j < len(lines) and lines[j].strip() and not re.match(r"^#{1,6}\s+", lines[j].strip()):
+        if lines[j].strip().startswith("```"):
+            break
+        para.append(lines[j].strip())
+        j += 1
+    if para and _norm_text(" ".join(para)) == _norm_text(excerpt):
+        i = j
+        while i < len(lines) and not lines[i].strip():
+            i += 1
+
+    return "\n".join(lines[i:]).strip()
+
+
+def apply_template(template_html: str, *, title: str, excerpt: str, date_str: str, read_text: str, cat: str, markdown: str) -> str:
+    safe_title = html_lib.escape(title)
+    safe_excerpt = html_lib.escape(excerpt)
+    safe_md = markdown.replace("</script>", "<\\/script>")
+
+    out = template_html
+    out = re.sub(r"(?m)^<title>.*?</title>", f"<title>{safe_title} — QiangCraft</title>", out, count=1, flags=re.S)
+    out = re.sub(r"(?m)^<meta name=\"description\" content=\".*?\"/>",
+                 f"<meta name=\"description\" content=\"{safe_excerpt}\"/>", out, count=1, flags=re.S)
+    out = re.sub(r"(<span class=\"post-head-date\">).*?(</span>)", rf"\g<1>{date_str}\g<2>", out, count=1, flags=re.S)
+    out = re.sub(r"(<span class=\"post-head-read\">).*?(</span>)", rf"\g<1>{read_text}\g<2>", out, count=1, flags=re.S)
+    out = re.sub(r"(<h1 class=\"post-title\">).*?(</h1>)", rf"\g<1>{safe_title}\g<2>", out, count=1, flags=re.S)
+    out = re.sub(r"(<p class=\"post-subtitle\">).*?(</p>)", rf"\g<1>{safe_excerpt}\g<2>", out, count=1, flags=re.S)
+
+    cat_name = CATEGORIES[cat]["name"]
+    cat_class = CATEGORIES[cat]["class"]
+    out = re.sub(
+        r"<span class=\"cat cat--[^\"]+\"><span class=\"cat-dot\"></span>.*?</span>",
+        f"<span class=\"cat {cat_class}\"><span class=\"cat-dot\"></span>{cat_name}</span>",
+        out,
+        count=1,
+        flags=re.S,
+    )
+
+    def repl_script(m: re.Match) -> str:
+        open_tag, _, close_tag = m.group(1), m.group(2), m.group(3)
+        return f"{open_tag}\n\n{safe_md}\n\n          {close_tag}"
+
+    out = re.sub(r"(<script type=\"text/markdown\"[^>]*>)(.*?)(</script>)", repl_script, out, count=1, flags=re.S)
+    return out
+
+
+def adjust_relative_paths(html: str) -> str:
+    # normalize assets/index paths for posts/<cat>/
+    html = re.sub(r'href=\"\.\./assets/', 'href="../../assets/', html)
+    html = re.sub(r'src=\"\.\./assets/', 'src="../../assets/', html)
+    html = re.sub(r'href=\"\.\./index\.html\"', 'href="../../index.html"', html)
+    html = re.sub(r'href=\"index\.html\"', 'href="../../index.html"', html)
+    return html
+
+
+def insert_card(index_html: str, card_html: str) -> str:
+    if card_html.strip() in index_html:
+        return index_html
+    # insert after featured card if present
+    m = re.search(r"<a[^>]*post-card--featured[^>]*>.*?</a>", index_html, re.S)
+    if m:
+        insert_at = m.end()
+        return index_html[:insert_at] + card_html + index_html[insert_at:]
+    # otherwise insert right after posts-grid opening
+    m = re.search(r"<div class=\"posts-grid[^>]*>\s*", index_html)
+    if m:
+        insert_at = m.end()
+        return index_html[:insert_at] + card_html + index_html[insert_at:]
+    raise RuntimeError("未找到 posts-grid 位置，无法插入卡片")
+
+
+def update_counts(index_html: str) -> str:
+    cards = re.findall(r"<a[^>]*class=\"post-card[^\"]*\"[^>]*data-cat=\"([^\"]+)\"", index_html)
+    total = len(cards)
+    counts = {k: 0 for k in CATEGORIES}
+    for c in cards:
+        if c in counts:
+            counts[c] += 1
+
+    # total counts
+    index_html = re.sub(r"(<span class=\"posts-count\" id=\"post-count\">)\d+\s*篇(</span>)",
+                        rf"\g<1>{total} 篇\2", index_html)
+    index_html = re.sub(r"(<span class=\"pk\">total</span><span class=\"pv\">)\d+\s*篇(</span>)",
+                        rf"\g<1>{total} 篇\2", index_html)
+
+    # per-category counts in hero panel
+    for cat, meta in CATEGORIES.items():
+        name = meta["name"]
+        index_html = re.sub(
+            rf"(<span class=\"pk\">{re.escape(name)}</span><span class=\"pv[^\"]*\">)\d+\s*篇(</span>)",
+            rf"\g<1>{counts[cat]} 篇\2",
+            index_html
+        )
+
+    # sidebar topic counts
+    for cat, meta in CATEGORIES.items():
+        index_html = re.sub(
+            rf"(<div class=\"topic-row\" data-filter=\"{re.escape(cat)}\".*?<span class=\"t-count\">)\d+(</span>)",
+            rf"\g<1>{counts[cat]}\2",
+            index_html,
+            flags=re.S
+        )
+
+    # update percentages in pbar-labels
+    def pct(n: int) -> int:
+        if total == 0:
+            return 0
+        return int(round(n * 100 / total))
+
+    for cat, meta in CATEGORIES.items():
+        name = meta["name"]
+        index_html = re.sub(
+            rf"(<div class=\"pbar-label\"><span>{re.escape(name)}</span><span>)\d+%(</span></div>)",
+            rf"\g<1>{pct(counts[cat])}%\2",
+            index_html
+        )
+
+    return index_html
+
+
+def build_card(href: str, cat: str, title: str, excerpt: str, date_str: str, meta_text: str) -> str:
+    cat_name = CATEGORIES[cat]["name"]
+    cat_class = CATEGORIES[cat]["class"]
+    # keep indentation consistent with index.html (8 spaces)
+    return (
+        "\n\n        <!-- {cat_name} -->\n"
+        "        <a href=\"{href}\" class=\"post-card\" data-cat=\"{cat}\">\n"
+        "          <div class=\"pc-top\"><span class=\"cat {cat_class}\"><span class=\"cat-dot\"></span>{cat_name}</span><span class=\"post-date\">{date}</span></div>\n"
+        "          <h2 class=\"post-title\">{title}</h2>\n"
+        "          <p class=\"post-excerpt\">{excerpt}</p>\n"
+        "          <div class=\"pc-footer\"><span class=\"post-meta\">{meta}</span><span class=\"post-arrow\">↗</span></div>\n"
+        "        </a>"
+    ).format(
+        cat_name=cat_name,
+        href=href,
+        cat=cat,
+        cat_class=cat_class,
+        date=date_str,
+        title=title,
+        excerpt=excerpt,
+        meta=meta_text,
+    )
+
+
+def parse_iso_date(s: str | None) -> Optional[date]:
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s.strip(), "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
+def render_nav_link(kind: str, item: Optional[dict]) -> str:
+    if kind == "prev":
+        label = "← 上一篇"
+        cls = "post-nav-link post-nav-link--prev"
+    else:
+        label = "下一篇 →"
+        cls = "post-nav-link post-nav-link--next"
+
+    if not item:
+        return (
+            f'<a href="#" class="{cls}" style="pointer-events:none;opacity:.45">'
+            f'<span class="post-nav-label">{label}</span>'
+            f'<span class="post-nav-title">暂无</span>'
+            f"</a>"
+        )
+
+    return (
+        f'<a href="./{item["name"]}" class="{cls}">'
+        f'<span class="post-nav-label">{label}</span>'
+        f'<span class="post-nav-title">{html_lib.escape(item["title"])}</span>'
+        f"</a>"
+    )
+
+
+def replace_nav_link(html: str, kind: str, replacement: str) -> str:
+    cls = "post-nav-link--prev" if kind == "prev" else "post-nav-link--next"
+    pat = rf'<a href="[^"]*" class="post-nav-link {cls}"(?:[^>]*)>.*?</a>'
+    m = re.search(r'(<nav class="post-footer-nav">)(.*?)(</nav>)', html, re.S)
+    if not m:
+        return html
+    body = m.group(2)
+    body2, n = re.subn(pat, replacement, body, count=1, flags=re.S)
+    if n == 0:
+        body2 = body.rstrip() + "\n          " + replacement + "\n"
+    return html[:m.start(2)] + body2 + html[m.end(2):]
+
+
+def update_nav_links_for_category(cat: str) -> None:
+    cat_dir = POSTS / cat
+    if not cat_dir.exists():
+        return
+
+    posts = []
+    for path in sorted(cat_dir.glob("*.html")):
+        if path.name.startswith("_"):
+            continue
+        html = read_text(path)
+        title = (
+            extract_first(html, r"<h1[^>]*class=\"post-title\"[^>]*>(.*?)</h1>")
+            or extract_first(html, r"<h1[^>]*>(.*?)</h1>")
+            or guess_title(html)
+            or path.stem
+        )
+        d = parse_iso_date(guess_date(html))
+        if d is None:
+            d = datetime.fromtimestamp(path.stat().st_mtime).date()
+        posts.append({"path": path, "name": path.name, "title": title, "date": d})
+
+    if not posts:
+        return
+
+    # Newest first; ties by filename for stable order
+    posts.sort(key=lambda x: (x["date"], x["name"]), reverse=True)
+
+    for idx, item in enumerate(posts):
+        newer = posts[idx - 1] if idx - 1 >= 0 else None
+        older = posts[idx + 1] if idx + 1 < len(posts) else None
+
+        html = read_text(item["path"])
+        html = replace_nav_link(html, "prev", render_nav_link("prev", newer))
+        html = replace_nav_link(html, "next", render_nav_link("next", older))
+        write_text(item["path"], html)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Import an HTML post and update index.html")
+    ap.add_argument("--file", help="Path to the HTML file")
+    ap.add_argument("--cat", choices=list(CATEGORIES.keys()), help="Category key")
+    ap.add_argument("--date", help="Publish date YYYY-MM-DD")
+    ap.add_argument("--title", help="Post title")
+    ap.add_argument("--excerpt", help="Post excerpt")
+    ap.add_argument("--meta", help="Post meta text (e.g., 约 8 分钟)")
+    ap.add_argument("--ui", action="store_true", help="Use UI dialogs to pick file and fields")
+    ap.add_argument("--ui-md", action="store_true", help="Use Markdown editor UI to generate HTML and import")
+    ap.add_argument("--repair", action="store_true", help="Repair an existing generated HTML using template + embedded Markdown")
+    args = ap.parse_args()
+
+    if not args.file and not args.ui and not args.ui_md:
+        args.ui = True
+
+    if args.repair:
+        if not args.file:
+            raise SystemExit("修复模式需要 --file")
+        src = Path(args.file).expanduser().resolve()
+        if not src.exists():
+            raise SystemExit("文件不存在")
+        html = read_text(src)
+        template_html = read_text(ROOT / "posts" / "_template.html")
+        m = re.search(r"<script type=\"text/markdown\"[^>]*>(.*?)</script>", html, re.S)
+        if not m:
+            raise SystemExit("未找到 Markdown 源内容")
+        markdown = m.group(1).strip()
+
+        fm, md_body = parse_front_matter(markdown)
+        title = fm.get("title") or extract_title(md_body) or guess_title(html) or "未命名文章"
+        excerpt = fm.get("description") or fm.get("excerpt") or extract_excerpt(md_body) or guess_excerpt(html) or "新文章"
+        date_str = fm.get("date") or guess_date(html) or date.today().isoformat()
+        read_label = fm.get("read") or guess_read(html) or estimate_read_time(md_body)
+
+        cat = src.parent.name
+        if cat not in CATEGORIES:
+            cat = fm.get("cat") or fm.get("category") or "cs"
+        if cat not in CATEGORIES:
+            raise SystemExit("无法识别分类")
+
+        md_clean = clean_markdown_body(md_body, title, excerpt)
+        html_out = apply_template(
+            template_html,
+            title=title,
+            excerpt=excerpt,
+            date_str=date_str,
+            read_text=read_label,
+            cat=cat,
+            markdown=md_clean,
+        )
+        write_text(src, html_out)
+        update_nav_links_for_category(cat)
+        print("修复完成：", src)
+        return
+
+    if args.ui:
+        mode = ui_choose_mode()
+        if mode == "md":
+            args.ui_md = True
+        elif mode == "html":
+            args.ui = True
+        else:
+            raise SystemExit("已取消")
+
+    if args.ui_md:
+        template_html = read_text(ROOT / "posts" / "_template.html")
+        # extract default markdown from template
+        m = re.search(r"<script type=\"text/markdown\"[^>]*>(.*?)</script>", template_html, re.S)
+        default_md = m.group(1).strip() if m else "# 标题\\n\\n正文内容。"
+        ui_result = ui_markdown_import("my-post.html", "robotics", default_md, template_html)
+        if not ui_result:
+            raise SystemExit("已取消")
+
+        filename = ui_result["filename"]
+        cat = ui_result["cat"]
+        markdown = ui_result["markdown"]
+
+        if not filename.lower().endswith(".html"):
+            filename += ".html"
+        filename = filename.replace("/", "_").replace("\\\\", "_")
+
+        fm, md_body = parse_front_matter(markdown)
+        title = fm.get("title") or extract_title(md_body) or "未命名文章"
+        excerpt = fm.get("description") or fm.get("excerpt") or extract_excerpt(md_body) or "新文章"
+        date_str = fm.get("date") or date.today().isoformat()
+        read_label = fm.get("read") or estimate_read_time(md_body)
+
+        md_clean = clean_markdown_body(md_body, title, excerpt)
+        html_out = apply_template(
+            template_html,
+            title=title,
+            excerpt=excerpt,
+            date_str=date_str,
+            read_text=read_label,
+            cat=cat,
+            markdown=md_clean,
+        )
+
+        dest_dir = POSTS / cat
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / filename
+        write_text(dest, html_out)
+
+        # update index.html
+        index_html = read_text(INDEX)
+        href = f"posts/{cat}/{dest.name}"
+        if href not in index_html:
+            card_html = build_card(href, cat, html_lib.escape(title), html_lib.escape(excerpt), date_str, read_label)
+            index_html = insert_card(index_html, card_html)
+        index_html = update_counts(index_html)
+        write_text(INDEX, index_html)
+        update_nav_links_for_category(cat)
+
+        print("完成：")
+        print(f"- 页面: {dest}")
+        print(f"- 首页卡片: {href}")
+        return
+
+    if not args.file and not args.ui:
+        raise SystemExit("请提供 --file 或使用 --ui")
+
+    file_path = args.file
+    if args.ui:
+        picked = ui_pick_file()
+        if picked:
+            file_path = picked
+        else:
+            raise SystemExit("未选择文件")
+
+    src = Path(file_path).expanduser().resolve()
+    if not src.exists() or src.suffix.lower() != ".html":
+        raise SystemExit("输入文件不存在或不是 .html 文件")
+
+    html = read_text(src)
+
+    cat = args.cat
+    if not cat:
+        if args.ui:
+            cat = ui_pick_category("robotics")
+        else:
+            cat = prompt_if_missing("分类 (cs/cpp/robotics/personal)", None)
+        if not cat or cat not in CATEGORIES:
+            raise SystemExit("分类不合法")
+
+    title = args.title or guess_title(html)
+    if args.ui:
+        title = ui_ask_string("标题", "标题", title) or title
+    title = prompt_if_missing("标题", title)
+
+    excerpt = args.excerpt or guess_excerpt(html)
+    if args.ui:
+        excerpt = ui_ask_string("摘要", "摘要", excerpt) or excerpt
+    excerpt = prompt_if_missing("摘要", excerpt)
+
+    date_str = args.date or guess_date(html) or date.today().isoformat()
+    if args.ui:
+        date_str = ui_ask_string("日期", "日期 (YYYY-MM-DD)", date_str) or date_str
+    date_str = prompt_if_missing("日期 (YYYY-MM-DD)", date_str, date_str)
+
+    meta_text = args.meta or guess_read(html) or "新文章"
+    if args.ui:
+        meta_text = ui_ask_string("元信息", "元信息 (例如: 约 8 分钟)", meta_text) or meta_text
+    meta_text = prompt_if_missing("元信息 (例如: 约 8 分钟)", meta_text, meta_text)
+
+    # move/copy into posts/<cat>/
+    dest_dir = POSTS / cat
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / src.name
+
+    # If source is already in destination, just rewrite relative paths
+    if src.resolve() != dest.resolve():
+        shutil.copy2(src, dest)
+
+    dest_html = read_text(dest)
+    dest_html = adjust_relative_paths(dest_html)
+    write_text(dest, dest_html)
+
+    # update index.html
+    index_html = read_text(INDEX)
+    href = f"posts/{cat}/{dest.name}"
+    if href in index_html:
+        print("index.html 已包含该链接，跳过插入卡片。")
+    else:
+        card_html = build_card(href, cat, title, excerpt, date_str, meta_text)
+        index_html = insert_card(index_html, card_html)
+
+    index_html = update_counts(index_html)
+    write_text(INDEX, index_html)
+    update_nav_links_for_category(cat)
+
+    print("完成：")
+    print(f"- 页面: {dest}")
+    print(f"- 首页卡片: {href}")
+
+
+if __name__ == "__main__":
+    main()

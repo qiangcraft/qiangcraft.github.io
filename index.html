@@ -276,10 +276,10 @@ a.post-card { text-decoration:none; }
           也写一些个人随笔。边学边想，边想边写。
         </p>
         <div class="hero-topics">
-          <span class="cat cat--personal"><span class="cat-dot"></span>随笔</span>
-          <span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span>
-          <span class="cat cat--cpp"><span class="cat-dot"></span>C++</span>
-          <span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span>
+          <a href="#main" class="cat cat--personal" data-cat-jump="personal"><span class="cat-dot"></span>随笔</a>
+          <a href="#main" class="cat cat--cs" data-cat-jump="cs"><span class="cat-dot"></span>计算机基础</a>
+          <a href="#main" class="cat cat--cpp" data-cat-jump="cpp"><span class="cat-dot"></span>C++</a>
+          <a href="#main" class="cat cat--robotics" data-cat-jump="robotics"><span class="cat-dot"></span>机器人</a>
         </div>
       </div>
       <div class="hero-panel">
@@ -289,17 +289,17 @@ a.post-card { text-decoration:none; }
         </div>
         <div class="panel-body">
           <div class="pl"><span class="pk">author</span><span class="pv">"qiangcraft"</span></div>
-          <div class="pl"><span class="pk">total</span><span class="pv">13 篇</span></div>
+          <div class="pl"><span class="pk">total</span><span class="pv">14 篇</span></div>
           <div class="psep"></div>
           <div class="pl"><span class="pk">计算机基础</span><span class="pv pv-cs">5 篇</span></div>
-          <div class="pl"><span class="pk">C++</span><span class="pv pv-cpp">3 篇</span></div>
+          <div class="pl"><span class="pk">C++</span><span class="pv pv-cpp">4 篇</span></div>
           <div class="pl"><span class="pk">机器人</span><span class="pv pv-rob">3 篇</span></div>
           <div class="pl"><span class="pk">随笔</span><span class="pv pv-per">2 篇</span></div>
           <div class="psep"></div>
           <div class="pbars">
-            <div><div class="pbar-label"><span>计算机基础</span><span>40%</span></div><div class="pbar-track"><div class="pbar-fill pf-cs"></div></div></div>
-            <div><div class="pbar-label"><span>C++</span><span>28%</span></div><div class="pbar-track"><div class="pbar-fill pf-cpp"></div></div></div>
-            <div><div class="pbar-label"><span>机器人</span><span>18%</span></div><div class="pbar-track"><div class="pbar-fill pf-rob"></div></div></div>
+            <div><div class="pbar-label"><span>计算机基础</span><span>36%</span></div><div class="pbar-track"><div class="pbar-fill pf-cs"></div></div></div>
+            <div><div class="pbar-label"><span>C++</span><span>29%</span></div><div class="pbar-track"><div class="pbar-fill pf-cpp"></div></div></div>
+            <div><div class="pbar-label"><span>机器人</span><span>21%</span></div><div class="pbar-track"><div class="pbar-fill pf-rob"></div></div></div>
             <div><div class="pbar-label"><span>随笔</span><span>14%</span></div><div class="pbar-track"><div class="pbar-fill pf-per"></div></div></div>
           </div>
         </div>
@@ -314,7 +314,7 @@ a.post-card { text-decoration:none; }
     <main>
       <div class="posts-header reveal">
         <span class="posts-label">// 最新文章</span>
-        <span class="posts-count" id="post-count">13 篇</span>
+        <span class="posts-count" id="post-count">14 篇</span>
       </div>
       <div class="posts-grid reveal" id="posts-grid">
 
@@ -333,6 +333,14 @@ a.post-card { text-decoration:none; }
               <span class="post-arrow">↗</span>
             </div>
           </div>
+        </a>
+
+        <!-- C++ -->
+        <a href="posts/cpp/cpp-smart-pointer.html" class="post-card" data-cat="cpp">
+          <div class="pc-top"><span class="cat cat--cpp"><span class="cat-dot"></span>C++</span><span class="post-date">2026-03-20</span></div>
+          <h2 class="post-title">万字长文详解c++ 智能指针: 原理、应用和陷阱</h2>
+          <p class="post-excerpt">本篇文章详细介绍了C++智能指针的原理、应用与陷阱。 智能指针是C++11引入的新特性，本文通过丰富的代码实例介绍了三种智能指针：`std::unique_ptr`、`std::shared_ptr`和`std::weak_ptr`，并介绍了它们的原理、使用方法和适用场景。本文最后还介绍了智能指针的一些陷阱，以及如何避免这些陷阱。</p>
+          <div class="pc-footer"><span class="post-meta">约 9 分钟</span><span class="post-arrow">↗</span></div>
         </a>
 
         <!-- 计算机基础 -->
@@ -467,7 +475,7 @@ a.post-card { text-decoration:none; }
         <div class="topic-list">
           <div class="topic-row" data-filter="personal"><div class="tl"><div class="t-bar" style="background:var(--personal)"></div><div><div class="t-name">随笔</div><div class="t-sub">思考与记录</div></div></div><span class="t-count">2</span></div>
           <div class="topic-row" data-filter="cs"><div class="tl"><div class="t-bar" style="background:var(--cs)"></div><div><div class="t-name">计算机基础</div><div class="t-sub">算法 · 系统</div></div></div><span class="t-count">5</span></div>
-          <div class="topic-row" data-filter="cpp"><div class="tl"><div class="t-bar" style="background:var(--cpp)"></div><div><div class="t-name">C++</div><div class="t-sub">现代 C++ · 模板</div></div></div><span class="t-count">3</span></div>
+          <div class="topic-row" data-filter="cpp"><div class="tl"><div class="t-bar" style="background:var(--cpp)"></div><div><div class="t-name">C++</div><div class="t-sub">现代 C++ · 模板</div></div></div><span class="t-count">4</span></div>
           <div class="topic-row" data-filter="robotics"><div class="tl"><div class="t-bar" style="background:var(--robotics)"></div><div><div class="t-name">机器人</div><div class="t-sub">ROS · 控制 · 硬件</div></div></div><span class="t-count">3</span></div>
         </div>
       </div>

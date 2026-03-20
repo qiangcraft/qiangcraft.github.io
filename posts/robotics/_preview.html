@@ -8,22 +8,13 @@
   ║  新文章模板 — 使用说明                              ║
   ║  1. 复制此文件到 posts/<标签>/ 目录，改个有意义的英文名 ║
   ║     例：posts/cpp/my-new-post.html              ║
-  ║  2. 修改下方 <title> 和 <meta> 内容               ║
-  ║  3. 填写文章头部信息（标题/日期/分类/阅读时间）       ║
-  ║  4. 在 <article> 里写正文                         ║
-  ║  5. 回到 index.html，在文章列表里加一张卡片         ║
-  ╚══════════════════════════════════════════════════╝
--->
-
-<!-- ① 改这里：页面标题 -->
-<title>文章标题 — QiangCraft</title>
+  ║  2. 修改下方 <title>标题示例 — QiangCraft</title>
 <!-- ② 改这里：摘要描述 -->
-<meta name="description" content="文章摘要，100 字以内。"/>
+<meta name="description" content="这是文章的开头段落。可以写 **加粗**、*斜体*，也可以加 [超链接](#)。"/>
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../../assets/style.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/atom-one-dark.min.css"/>
 <style>
 /* ── 文章页专属样式 ── */
 body { min-height: 100vh; display: flex; flex-direction: column; }
@@ -111,11 +102,10 @@ h1.post-title {
 
 /* 代码块 */
 pre.code-block {
-  background: linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,0)) , var(--bg-2);
-  border: 1px solid var(--border-2); border-radius: var(--r);
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r);
   padding: 1.2rem 1.4rem; margin: 1.4rem 0;
-  font-family: var(--ff-mono); font-size: .82rem; line-height: 1.75;
-  color: var(--text); overflow-x: auto;
+  font-family: var(--ff-mono); font-size: .78rem; line-height: 1.8;
+  color: var(--text-2); overflow-x: auto;
 }
 pre.code-block .lang-label {
   display: block; font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
@@ -136,18 +126,6 @@ pre.code-block .lang-label {
   font-family: var(--ff-mono); font-size: .82em;
   background: var(--bg-3); padding: .15em .45em;
   border-radius: 3px; color: var(--cpp);
-}
-/* 代码块内 code 不使用行内代码样式，避免出现一条条色块 */
-.prose pre code {
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
-  color: inherit;
-  font-size: inherit;
-}
-.prose pre code.hljs {
-  background: transparent;
-  padding: 0;
 }
 
 /* 文章底部 */
@@ -219,21 +197,21 @@ pre.code-block .lang-label {
       <a href="../../index.html">首页</a>
       <span class="post-breadcrumb-sep">/</span>
       <!-- ③ 改分类 -->
-      <span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span>
+      <span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span>
     </div>
 
     <!-- 元信息 -->
     <div class="post-head-meta">
       <!-- ④ 改日期和阅读时间 -->
-      <span class="post-head-date">2026-01-01</span>
+      P26-03-20</span>
       <span class="post-head-dot"></span>
-      <span class="post-head-read">约 10 分钟</span>
+      <span class="post-head-read">约 1 分钟</span>
     </div>
 
     <!-- ⑤ 改标题 -->
-    <h1 class="post-title">在这里写文章标题</h1>
+    <h1 class="post-title">标题示例</h1>
     <!-- ⑥ 改副标题/摘要（可选） -->
-    <p class="post-subtitle">一两句话介绍这篇文章在讲什么。可以省略。</p>
+    <p class="post-subtitle">这是文章的开头段落。可以写 **加粗**、*斜体*，也可以加 [超链接](#)。</p>
   </div>
 </section>
 
@@ -335,7 +313,6 @@ int main() {
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
 <script src="../../assets/main.js"></script>
 <script>
 /* 目录自动高亮 */
