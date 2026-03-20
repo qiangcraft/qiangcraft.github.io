@@ -3,6 +3,13 @@
 ═══════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
+  function estimateReadMinutes(text) {
+    const src = text || '';
+    const cjkCount = (src.match(/[\u4e00-\u9fff]/g) || []).length;
+    const wordCount = (src.match(/[A-Za-z0-9_]+/g) || []).length;
+    const total = cjkCount + wordCount;
+    return Math.max(1, Math.ceil(total / 500));
+  }
 
   /* ── 滚动时导航栏加背景 ── */
   const hdr = document.getElementById('hdr');
@@ -58,6 +65,34 @@ document.addEventListener('DOMContentLoaded', () => {
       setFilter(cat);
       document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }));
+
+    // 首页卡片与文章页元信息对齐：自动同步阅读时长/日期
+    // 本地 file:// 预览下跨文件 fetch 不稳定，跳过动态覆盖，保留静态值
+    if (location.protocol !== 'file:') {
+      cards.forEach(card => {
+        const href = card.getAttribute('href') || '';
+        if (!/^posts\/.+\.html$/.test(href)) return;
+        fetch(href)
+          .then(r => r.text())
+          .then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const postDate = (doc.querySelector('.post-head-date')?.textContent || '').trim();
+            const dateEl = card.querySelector('.post-date');
+            if (postDate && dateEl) dateEl.textContent = postDate;
+
+            const mdText = doc.querySelector('script[type="text/markdown"]')?.textContent || '';
+            const mins = mdText ? estimateReadMinutes(mdText) : null;
+            const readText = mins ? `约 ${mins} 分钟` : ((doc.querySelector('.post-head-read')?.textContent || '').trim());
+            const metaEl = card.querySelector('.post-meta');
+            if (readText && metaEl) {
+              const raw = (metaEl.textContent || '').trim();
+              const parts = raw.split('·').map(s => s.trim()).filter(Boolean);
+              metaEl.textContent = parts.length > 1 ? [readText, ...parts.slice(1)].join(' · ') : readText;
+            }
+          })
+          .catch(() => {});
+      });
+    }
   }
 
   /* ── 文章页：Markdown 自动渲染 ── */
@@ -89,6 +124,18 @@ document.addEventListener('DOMContentLoaded', () => {
       target.textContent = md;
     }
   });
+
+  /* ── 文章页：阅读时长自动估算 ── */
+  if (document.querySelector('.post-layout') && location.protocol !== 'file:') {
+    const readEl = document.querySelector('.post-head-read');
+    if (readEl) {
+      // 优先使用 Markdown 源，拿不到时回退到渲染后的正文文本
+      const mdEl = document.querySelector('script[type="text/markdown"]');
+      const sourceText = mdEl ? (mdEl.textContent || '') : (document.querySelector('.prose')?.innerText || '');
+      const mins = estimateReadMinutes(sourceText);
+      readEl.textContent = `约 ${mins} 分钟`;
+    }
+  }
 
   // 把 Markdown 生成的代码块统一成现有的 code-block 样式
   document.querySelectorAll('pre > code').forEach(code => {
