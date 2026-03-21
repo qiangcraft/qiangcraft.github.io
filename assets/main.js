@@ -142,6 +142,70 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 首页：微信二维码弹窗 ── */
   const wechatModal = document.getElementById('wechat-modal');
   if (wechatModal) {
+    // 兜底注入弹窗样式：避免某些页面未内置 CSS 时二维码直接出现在文档流里
+    const modalStyleId = 'wechat-modal-style';
+    if (!document.getElementById(modalStyleId)) {
+      const style = document.createElement('style');
+      style.id = modalStyleId;
+      style.textContent = `
+        .wechat-modal {
+          position: fixed;
+          inset: 0;
+          z-index: 1200;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: rgba(5, 8, 14, .72);
+        }
+        .wechat-modal.is-open { display: flex; }
+        .wechat-modal-card {
+          width: min(92vw, 430px);
+          background: var(--bg-2, #111827);
+          border: 1px solid var(--border-2, rgba(148,163,184,.3));
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 24px 80px rgba(0,0,0,.45);
+        }
+        .wechat-modal-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: .8rem 1rem;
+          border-bottom: 1px solid var(--border, rgba(148,163,184,.25));
+          font-family: var(--ff-mono, "IBM Plex Mono", monospace);
+          font-size: .66rem;
+          color: var(--text-2, #cbd5e1);
+        }
+        .wechat-close {
+          border: 1px solid var(--border, rgba(148,163,184,.25));
+          background: var(--bg-3, rgba(15,23,42,.6));
+          color: var(--text-2, #cbd5e1);
+          border-radius: 8px;
+          padding: .2rem .55rem;
+          cursor: pointer;
+        }
+        .wechat-modal-body { padding: 1rem; }
+        .wechat-qr {
+          width: 100%;
+          height: auto;
+          display: block;
+          border-radius: 10px;
+          border: 1px solid var(--border, rgba(148,163,184,.25));
+        }
+        .wechat-tip {
+          margin-top: .7rem;
+          font-size: .72rem;
+          color: var(--text-3, #94a3b8);
+          font-family: var(--ff-mono, "IBM Plex Mono", monospace);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // 确保初始状态隐藏
+    wechatModal.classList.remove('is-open');
+    wechatModal.setAttribute('aria-hidden', 'true');
+
     const openers = document.querySelectorAll('[data-open-wechat]');
     const closeBtn = document.getElementById('wechat-close');
     const qr = document.getElementById('wechat-qr');
