@@ -215,6 +215,7 @@ a.post-card { text-decoration:none; }
   transition:color .2s, background .2s;
 }
 .tag-pill:hover { color:var(--text); background:var(--surface); }
+.tag-pill.active { color:var(--text); background:var(--surface); border-color:var(--border); }
 
 .act-list { display:flex; flex-direction:column; gap:.8rem; }
 .act-item { display:flex; gap:.8rem; align-items:flex-start; }
@@ -373,7 +374,7 @@ a.post-card { text-decoration:none; }
         </a>
 
         <!-- 机器人 -->
-        <a href="posts/robotics/optimus_architecture.html" class="post-card" data-cat="robotics">
+        <a href="posts/robotics/optimus_architecture.html" class="post-card" data-cat="robotics" data-tags="人形机器人">
           <div class="pc-top"><span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span><span class="post-date">2026-03-21</span></div>
           <h2 class="post-title">Tesla Optimus 整体系统技术架构</h2>
           <p class="post-excerpt">这是一份可交互的 Optimus 整体系统技术架构图，按七层纵向组织，每层可点击展开/收起。</p>
@@ -381,7 +382,7 @@ a.post-card { text-decoration:none; }
         </a>
 
         <!-- C++ -->
-        <a href="posts/cpp/cpp-smart-pointer.html" class="post-card" data-cat="cpp">
+        <a href="posts/cpp/cpp-smart-pointer.html" class="post-card" data-cat="cpp" data-tags="C++">
           <div class="pc-top"><span class="cat cat--cpp"><span class="cat-dot"></span>C++</span><span class="post-date">2026-03-20</span></div>
           <h2 class="post-title">万字长文详解c++ 智能指针: 原理、应用和陷阱</h2>
           <p class="post-excerpt">本篇文章详细介绍了C++智能指针的原理、应用与陷阱。 智能指针是C++11引入的新特性，本文通过丰富的代码实例介绍了三种智能指针：`std::unique_ptr`、`std::shared_ptr`和`std::weak_ptr`，并介绍了它们的原理、使用方法和适用场景。本文最后还介绍了智能指针的一些陷阱，以及如何避免这些陷阱。</p>
@@ -397,7 +398,7 @@ a.post-card { text-decoration:none; }
         </a>
 
         <!-- C++ -->
-        <a href="posts/cpp/raii-cpp.html" class="post-card" data-cat="cpp">
+        <a href="posts/cpp/raii-cpp.html" class="post-card" data-cat="cpp" data-tags="C++">
           <div class="pc-top"><span class="cat cat--cpp"><span class="cat-dot"></span>C++</span><span class="post-date">2026-03-05</span></div>
           <h2 class="post-title">RAII：C++ 资源管理为何如此优雅</h2>
           <div class="snippet-block"><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
@@ -419,7 +420,7 @@ a.post-card { text-decoration:none; }
         </a>
 
         <!-- 机器人 -->
-        <a href="posts/robotics/robot_full_system.html" class="post-card" data-cat="robotics">
+        <a href="posts/robotics/robot_full_system.html" class="post-card" data-cat="robotics" data-tags="人形机器人">
           <div class="pc-top"><span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span><span class="post-date">2026-03-20</span></div>
           <h2 class="post-title">人形机器人系统总览</h2>
           <p class="post-excerpt">传感器 · 执行器 · 通信协议 · 身体结构 · 软件架构 · 具身智能</p>
@@ -529,12 +530,7 @@ a.post-card { text-decoration:none; }
       <div class="sw">
         <div class="sw-head"><span class="sw-dot" style="background:var(--text-3)"></span>标签</div>
         <div class="sw-body">
-          <div class="tags-cloud">
-            <span class="tag-pill">内存</span><span class="tag-pill">算法</span><span class="tag-pill">并发</span>
-            <span class="tag-pill">模板</span><span class="tag-pill">RAII</span><span class="tag-pill">ROS2</span>
-            <span class="tag-pill">PID</span><span class="tag-pill">移动语义</span><span class="tag-pill">数据结构</span>
-            <span class="tag-pill">缓存</span><span class="tag-pill">解析器</span><span class="tag-pill">学习方法</span>
-          </div>
+          <div class="tags-cloud"><span class="tag-pill">人形机器人</span><span class="tag-pill">C++</span></div>
         </div>
       </div>
 

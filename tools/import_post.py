@@ -180,7 +180,7 @@ def ui_choose_mode() -> Optional[str]:
     root = tk.Tk()
     root.title("QiangCraft · 导入文章")
     root.resizable(False, False)
-    root.geometry("520x260")
+    root.geometry("760x260")
 
     wrap = ttk.Frame(root, padding=16)
     wrap.pack(fill="both", expand=True)
@@ -192,6 +192,7 @@ def ui_choose_mode() -> Optional[str]:
     cards.pack(fill="x", expand=True)
     cards.columnconfigure(0, weight=1)
     cards.columnconfigure(1, weight=1)
+    cards.columnconfigure(2, weight=1)
 
     result: Optional[str] = None
 
@@ -205,6 +206,11 @@ def ui_choose_mode() -> Optional[str]:
         result = "md"
         root.destroy()
 
+    def pick_manage_tags() -> None:
+        nonlocal result
+        result = "manage_tags"
+        root.destroy()
+
     card1 = ttk.Frame(cards, padding=12, relief="ridge")
     card1.grid(row=0, column=0, padx=(0, 8), sticky="nsew")
     ttk.Label(card1, text="导入现成 HTML", font=("Helvetica Neue", 13, "bold")).pack(anchor="w")
@@ -212,16 +218,364 @@ def ui_choose_mode() -> Optional[str]:
     ttk.Button(card1, text="选择 HTML 文件", command=pick_html).pack(anchor="w")
 
     card2 = ttk.Frame(cards, padding=12, relief="ridge")
-    card2.grid(row=0, column=1, padx=(8, 0), sticky="nsew")
+    card2.grid(row=0, column=1, padx=8, sticky="nsew")
     ttk.Label(card2, text="Markdown 生成", font=("Helvetica Neue", 13, "bold")).pack(anchor="w")
     ttk.Label(card2, text="用 Markdown 编辑器生成 HTML 并自动导入", foreground="#666").pack(anchor="w", pady=(4, 10))
     ttk.Button(card2, text="打开编辑器", command=pick_md).pack(anchor="w")
+
+    card3 = ttk.Frame(cards, padding=12, relief="ridge")
+    card3.grid(row=0, column=2, padx=(0, 0), sticky="nsew")
+    ttk.Label(card3, text="已有文章标签管理", font=("Helvetica Neue", 13, "bold")).pack(anchor="w")
+    ttk.Label(card3, text="编辑 posts 里已有 HTML 的标签", foreground="#666").pack(anchor="w", pady=(4, 10))
+    ttk.Button(card3, text="管理标签", command=pick_manage_tags).pack(anchor="w")
 
     root.mainloop()
     return result
 
 
-def ui_markdown_import(default_filename: str, default_cat: str, default_md: str, template_html: str) -> Optional[dict]:
+def load_existing_tags() -> list[str]:
+    if not INDEX.exists():
+        return []
+    html = read_text(INDEX)
+    m = re.search(r'<div class="tags-cloud">(.*?)</div>', html, re.S)
+    if not m:
+        return []
+    inner = m.group(1)
+    tags = re.findall(r'<span class="tag-pill">\s*(.*?)\s*</span>', inner, re.S)
+    out = []
+    seen = set()
+    for t in tags:
+        tt = html_lib.unescape(strip_tags(t)).strip()
+        if tt and tt not in seen:
+            seen.add(tt)
+            out.append(tt)
+    return out
+
+
+def normalize_tags(tags: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for t in tags:
+        tt = t.strip()
+        if tt and tt not in seen:
+            seen.add(tt)
+            out.append(tt)
+    return out
+
+
+def extract_keywords_meta(html: str) -> list[str]:
+    m = re.search(r'<meta\s+name=["\']keywords["\']\s+content=["\'](.*?)["\']\s*/?>', html, re.I | re.S)
+    if not m:
+        return []
+    content = html_lib.unescape(m.group(1))
+    return normalize_tags([s.strip() for s in content.split(",")])
+
+
+def list_existing_post_files() -> list[Path]:
+    items: list[Path] = []
+    for cat in CATEGORIES.keys():
+        cat_dir = POSTS / cat
+        if not cat_dir.exists():
+            continue
+        for p in sorted(cat_dir.glob("*.html")):
+            if p.name.startswith("_"):
+                continue
+            items.append(p)
+    return sorted(items, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def ui_pick_existing_post_file() -> Optional[str]:
+    try:
+        import tkinter as tk
+        from tkinter import ttk
+    except Exception:
+        return None
+
+    files = list_existing_post_files()
+    if not files:
+        return None
+
+    root = tk.Tk()
+    root.title("选择要管理标签的文章")
+    root.geometry("920x560")
+
+    wrap = ttk.Frame(root, padding=12)
+    wrap.pack(fill="both", expand=True)
+
+    ttk.Label(wrap, text="posts 文章列表（按修改时间倒序）").pack(anchor="w")
+    search_var = tk.StringVar()
+    ttk.Entry(wrap, textvariable=search_var).pack(fill="x", pady=(6, 8))
+
+    cols = ("cat", "date", "title", "tags", "path")
+    tree = ttk.Treeview(wrap, columns=cols, show="headings")
+    tree.heading("cat", text="分类")
+    tree.heading("date", text="日期")
+    tree.heading("title", text="标题")
+    tree.heading("tags", text="标签")
+    tree.heading("path", text="路径")
+    tree.column("cat", width=90, anchor="center")
+    tree.column("date", width=110, anchor="center")
+    tree.column("title", width=260, anchor="w")
+    tree.column("tags", width=260, anchor="w")
+    tree.column("path", width=320, anchor="w")
+    tree.pack(fill="both", expand=True)
+
+    records: list[dict] = []
+    for p in files:
+        html = read_text(p)
+        cat = p.parent.name
+        d = guess_date(html) or "-"
+        title = guess_title(html) or p.stem
+        tags = ", ".join(extract_keywords_meta(html)) or "-"
+        rel = str(p.relative_to(ROOT)).replace(os.sep, "/")
+        records.append({"cat": cat, "date": d, "title": title, "tags": tags, "path": rel, "abs": str(p)})
+
+    def refill() -> None:
+        q = search_var.get().strip().lower()
+        tree.delete(*tree.get_children())
+        for r in records:
+            if q and q not in (r["cat"] + " " + r["date"] + " " + r["title"] + " " + r["tags"] + " " + r["path"]).lower():
+                continue
+            tree.insert("", "end", values=(r["cat"], r["date"], r["title"], r["tags"], r["path"]))
+
+    refill()
+    search_var.trace_add("write", lambda *_: refill())
+
+    result: Optional[str] = None
+
+    def pick() -> None:
+        nonlocal result
+        sel = tree.selection()
+        cur = sel[0] if sel else tree.focus()
+        if not cur:
+            return
+        vals = tree.item(cur, "values")
+        path_rel = vals[4] if len(vals) >= 5 else None
+        if not path_rel:
+            return
+        result = str((ROOT / path_rel).resolve())
+        root.destroy()
+
+    def cancel() -> None:
+        root.destroy()
+
+    btns = ttk.Frame(wrap)
+    btns.pack(fill="x", pady=(8, 0))
+    ttk.Button(btns, text="选择", command=pick).pack(side="left")
+    ttk.Button(btns, text="取消", command=cancel).pack(side="left", padx=(8, 0))
+
+    tree.bind("<Double-1>", lambda _e: pick())
+    root.protocol("WM_DELETE_WINDOW", cancel)
+    root.mainloop()
+    return result
+
+
+def ui_edit_post_tags(file_path: str, *, existing_tags: list[str], initial_tags: list[str]) -> Optional[list[str]]:
+    try:
+        import tkinter as tk
+        from tkinter import ttk
+    except Exception:
+        return None
+
+    root = tk.Tk()
+    root.title("管理文章标签")
+    root.geometry("760x520")
+
+    wrap = ttk.Frame(root, padding=12)
+    wrap.pack(fill="both", expand=True)
+
+    ttk.Label(wrap, text="文章").pack(anchor="w")
+    path_var = tk.StringVar(value=file_path)
+    ttk.Entry(wrap, textvariable=path_var, state="readonly", width=100).pack(fill="x", pady=(4, 8))
+
+    tags_wrap = ttk.LabelFrame(wrap, text="标签（可多选）", padding=12)
+    tags_wrap.pack(fill="both", expand=True)
+
+    tags_list = tk.Listbox(tags_wrap, selectmode="multiple", height=14, exportselection=False)
+    tags_list.grid(row=0, column=0, columnspan=3, sticky="nsew")
+    tags_wrap.columnconfigure(0, weight=1)
+    tags_wrap.rowconfigure(0, weight=1)
+
+    combined = normalize_tags(existing_tags + initial_tags)
+    for t in combined:
+        tags_list.insert("end", t)
+    for i, t in enumerate(tags_list.get(0, "end")):
+        if t in initial_tags:
+            tags_list.selection_set(i)
+
+    new_tag_var = tk.StringVar()
+    ttk.Entry(tags_wrap, textvariable=new_tag_var, width=24).grid(row=1, column=0, sticky="w", pady=(8, 0))
+
+    def add_tag() -> None:
+        tag = new_tag_var.get().strip()
+        if not tag:
+            return
+        values = tags_list.get(0, "end")
+        if tag not in values:
+            tags_list.insert("end", tag)
+            idx = tags_list.size() - 1
+        else:
+            idx = values.index(tag)
+        tags_list.selection_set(idx)
+        new_tag_var.set("")
+
+    ttk.Button(tags_wrap, text="新建标签", command=add_tag).grid(row=1, column=1, padx=(8, 0), pady=(8, 0), sticky="w")
+    ttk.Label(tags_wrap, text="不选即清空该文章标签").grid(row=1, column=2, padx=(8, 0), pady=(8, 0), sticky="w")
+
+    result: Optional[list[str]] = None
+
+    def submit() -> None:
+        nonlocal result
+        selected = [tags_list.get(i) for i in tags_list.curselection()]
+        result = normalize_tags(selected)
+        root.destroy()
+
+    def cancel() -> None:
+        root.destroy()
+
+    btns = ttk.Frame(wrap)
+    btns.pack(fill="x", pady=(10, 0))
+    ttk.Button(btns, text="保存", command=submit).pack(side="left")
+    ttk.Button(btns, text="取消", command=cancel).pack(side="left", padx=(8, 0))
+
+    root.protocol("WM_DELETE_WINDOW", cancel)
+    root.mainloop()
+    return result
+
+
+def ui_html_import_form(
+    *,
+    file_path: str,
+    default_cat: str,
+    default_title: str,
+    default_excerpt: str,
+    default_date: str,
+    default_meta: str,
+    existing_tags: list[str],
+) -> Optional[dict]:
+    try:
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+    except Exception:
+        return None
+
+    root = tk.Tk()
+    root.title("导入 HTML 文章")
+    root.geometry("860x660")
+
+    form = ttk.Frame(root, padding=12)
+    form.pack(fill="x")
+
+    ttk.Label(form, text="文件").grid(row=0, column=0, sticky="w")
+    file_var = tk.StringVar(value=file_path)
+    ttk.Entry(form, textvariable=file_var, state="readonly", width=82).grid(row=0, column=1, columnspan=3, padx=(8, 0), sticky="we")
+
+    ttk.Label(form, text="分类").grid(row=1, column=0, sticky="w", pady=(8, 0))
+    cat_var = tk.StringVar(value=default_cat or "robotics")
+    ttk.Combobox(form, textvariable=cat_var, values=list(CATEGORIES.keys()), state="readonly", width=18).grid(row=1, column=1, padx=(8, 0), pady=(8, 0), sticky="w")
+
+    ttk.Label(form, text="日期").grid(row=1, column=2, sticky="e", pady=(8, 0))
+    date_var = tk.StringVar(value=default_date)
+    ttk.Entry(form, textvariable=date_var, width=20).grid(row=1, column=3, padx=(8, 0), pady=(8, 0), sticky="w")
+
+    ttk.Label(form, text="标题").grid(row=2, column=0, sticky="w", pady=(8, 0))
+    title_var = tk.StringVar(value=default_title)
+    ttk.Entry(form, textvariable=title_var, width=82).grid(row=2, column=1, columnspan=3, padx=(8, 0), pady=(8, 0), sticky="we")
+
+    ttk.Label(form, text="摘要").grid(row=3, column=0, sticky="nw", pady=(8, 0))
+    excerpt_text = tk.Text(form, height=4, wrap="word")
+    excerpt_text.grid(row=3, column=1, columnspan=3, padx=(8, 0), pady=(8, 0), sticky="we")
+    excerpt_text.insert("1.0", default_excerpt)
+
+    ttk.Label(form, text="元信息").grid(row=4, column=0, sticky="w", pady=(8, 0))
+    meta_var = tk.StringVar(value=default_meta)
+    ttk.Entry(form, textvariable=meta_var, width=24).grid(row=4, column=1, padx=(8, 0), pady=(8, 0), sticky="w")
+    ttk.Label(form, text="(自动计算，可修改)").grid(row=4, column=2, columnspan=2, sticky="w", pady=(8, 0))
+
+    tags_wrap = ttk.LabelFrame(root, text="标签", padding=12)
+    tags_wrap.pack(fill="both", expand=True, padx=12, pady=(8, 0))
+
+    listbox = tk.Listbox(tags_wrap, selectmode="multiple", height=10, exportselection=False)
+    listbox.grid(row=0, column=0, columnspan=3, sticky="nsew")
+    for t in existing_tags:
+        listbox.insert("end", t)
+
+    tags_wrap.columnconfigure(0, weight=1)
+    tags_wrap.columnconfigure(1, weight=0)
+    tags_wrap.columnconfigure(2, weight=0)
+    tags_wrap.rowconfigure(0, weight=1)
+
+    new_tag_var = tk.StringVar()
+    ttk.Entry(tags_wrap, textvariable=new_tag_var, width=24).grid(row=1, column=0, sticky="w", pady=(8, 0))
+
+    def add_tag() -> None:
+        tag = new_tag_var.get().strip()
+        if not tag:
+            return
+        values = listbox.get(0, "end")
+        if tag not in values:
+            listbox.insert("end", tag)
+        idx = listbox.get(0, "end").index(tag)
+        listbox.selection_set(idx)
+        new_tag_var.set("")
+
+    ttk.Button(tags_wrap, text="新建标签", command=add_tag).grid(row=1, column=1, padx=(8, 0), pady=(8, 0), sticky="w")
+    ttk.Label(tags_wrap, text="可多选").grid(row=1, column=2, padx=(8, 0), pady=(8, 0), sticky="w")
+
+    btns = ttk.Frame(root, padding=12)
+    btns.pack(fill="x")
+
+    result: Optional[dict] = None
+
+    def submit() -> None:
+        nonlocal result
+        cat = cat_var.get().strip()
+        title = title_var.get().strip()
+        excerpt = excerpt_text.get("1.0", "end").strip()
+        d = date_var.get().strip()
+        meta = meta_var.get().strip()
+        if cat not in CATEGORIES:
+            messagebox.showerror("分类错误", "请选择有效分类")
+            return
+        if not title:
+            messagebox.showerror("标题为空", "请填写标题")
+            return
+        if not excerpt:
+            messagebox.showerror("摘要为空", "请填写摘要")
+            return
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", d):
+            messagebox.showerror("日期格式错误", "请使用 YYYY-MM-DD")
+            return
+        selected = [listbox.get(i) for i in listbox.curselection()]
+        result = {
+            "cat": cat,
+            "title": title,
+            "excerpt": excerpt,
+            "date": d,
+            "meta": meta or default_meta,
+            "tags": selected,
+        }
+        root.destroy()
+
+    def cancel() -> None:
+        root.destroy()
+
+    ttk.Button(btns, text="导入", command=submit).pack(side="right")
+    ttk.Button(btns, text="取消", command=cancel).pack(side="right", padx=(0, 8))
+
+    root.protocol("WM_DELETE_WINDOW", cancel)
+    root.mainloop()
+    return result
+
+
+def ui_markdown_import(
+    default_filename: str,
+    default_cat: str,
+    default_md: str,
+    template_html: str,
+    *,
+    existing_tags: list[str],
+) -> Optional[dict]:
     try:
         import tkinter as tk
         from tkinter import ttk, messagebox
@@ -252,6 +606,34 @@ def ui_markdown_import(default_filename: str, default_cat: str, default_md: str,
     text = tk.Text(editor_wrap, wrap="word")
     text.pack(fill="both", expand=True, pady=(6, 0))
     text.insert("1.0", default_md)
+
+    tags_wrap = ttk.LabelFrame(root, text="标签", padding=12)
+    tags_wrap.pack(fill="both", expand=False, padx=12, pady=(8, 0))
+
+    tags_list = tk.Listbox(tags_wrap, selectmode="multiple", height=6, exportselection=False)
+    tags_list.grid(row=0, column=0, columnspan=3, sticky="nsew")
+    for t in existing_tags:
+        tags_list.insert("end", t)
+
+    tags_wrap.columnconfigure(0, weight=1)
+    tags_wrap.rowconfigure(0, weight=1)
+
+    new_tag_var = tk.StringVar()
+    ttk.Entry(tags_wrap, textvariable=new_tag_var, width=24).grid(row=1, column=0, sticky="w", pady=(8, 0))
+
+    def add_tag() -> None:
+        tag = new_tag_var.get().strip()
+        if not tag:
+            return
+        values = tags_list.get(0, "end")
+        if tag not in values:
+            tags_list.insert("end", tag)
+        idx = tags_list.get(0, "end").index(tag)
+        tags_list.selection_set(idx)
+        new_tag_var.set("")
+
+    ttk.Button(tags_wrap, text="新建标签", command=add_tag).grid(row=1, column=1, padx=(8, 0), pady=(8, 0), sticky="w")
+    ttk.Label(tags_wrap, text="可多选").grid(row=1, column=2, padx=(8, 0), pady=(8, 0), sticky="w")
 
     btns = ttk.Frame(root, padding=12)
     btns.pack(fill="x")
@@ -341,7 +723,12 @@ def ui_markdown_import(default_filename: str, default_cat: str, default_md: str,
         if not md.strip():
             messagebox.showerror("内容为空", "请填写 Markdown 内容")
             return
-        result = {"filename": filename, "cat": cat, "markdown": md}
+        result = {
+            "filename": filename,
+            "cat": cat,
+            "markdown": md,
+            "tags": [tags_list.get(i) for i in tags_list.curselection()],
+        }
         root.destroy()
 
     def cancel() -> None:
@@ -417,6 +804,20 @@ def estimate_read_time(md: str) -> str:
     words = len(re.findall(r"[A-Za-z0-9]+", md))
     # Mixed-language estimate:
     # Chinese reading speed ~300 chars/min, English ~200 words/min.
+    mins = max(1, int(math.ceil((cjk / 300) + (words / 200))))
+    return f"约 {mins} 分钟"
+
+
+def estimate_read_time_from_html(html: str) -> str:
+    # Remove non-content blocks first.
+    txt = re.sub(r"<script[\s\S]*?</script>", " ", html, flags=re.I)
+    txt = re.sub(r"<style[\s\S]*?</style>", " ", txt, flags=re.I)
+    # Strip tags and collapse spaces.
+    txt = re.sub(r"<[^>]+>", " ", txt)
+    txt = html_lib.unescape(txt)
+    txt = re.sub(r"\s+", " ", txt).strip()
+    cjk = len(re.findall(r"[\u4e00-\u9fff]", txt))
+    words = len(re.findall(r"[A-Za-z0-9]+", txt))
     mins = max(1, int(math.ceil((cjk / 300) + (words / 200))))
     return f"约 {mins} 分钟"
 
@@ -498,7 +899,95 @@ def adjust_relative_paths(html: str) -> str:
     return html
 
 
-def inject_template_elements(html: str, template_html: str) -> str:
+def set_keywords_meta(html: str, tags: list[str]) -> str:
+    tags = normalize_tags(tags)
+    meta_re = r'<meta\s+name=["\']keywords["\']\s+content=["\'].*?["\']\s*/?>'
+    if not tags:
+        return re.sub(meta_re + r'\n?', "", html, count=1, flags=re.I)
+
+    content = html_lib.escape(", ".join(tags), quote=True)
+    meta_tag = f'<meta name="keywords" content="{content}"/>'
+    if re.search(meta_re, html, re.I):
+        return re.sub(meta_re, meta_tag, html, count=1, flags=re.I)
+    if re.search(r'<meta\s+name="description"\s+content=".*?"\s*/?>', html, re.I):
+        return re.sub(r'(<meta\s+name="description"\s+content=".*?"\s*/?>)', r'\1\n' + meta_tag, html, count=1, flags=re.I)
+    return re.sub(r'(<head\b[^>]*>)', r'\1\n' + meta_tag, html, count=1, flags=re.I)
+
+
+def apply_keywords_meta(html: str, tags: list[str]) -> str:
+    return set_keywords_meta(html, tags)
+
+
+def update_tags_cloud(index_html: str, new_tags: list[str]) -> str:
+    new_tags = normalize_tags(new_tags)
+    if not new_tags:
+        return index_html
+    m = re.search(r'(<div class="tags-cloud">)(.*?)(</div>)', index_html, re.S)
+    if not m:
+        return index_html
+    inner = m.group(2)
+    old = re.findall(r'<span class="tag-pill">\s*(.*?)\s*</span>', inner, re.S)
+    tags = []
+    seen = set()
+    for t in old + new_tags:
+        tt = html_lib.unescape(strip_tags(t)).strip()
+        if tt and tt not in seen:
+            seen.add(tt)
+            tags.append(tt)
+    rebuilt = "".join(f'<span class="tag-pill">{html_lib.escape(t)}</span>' for t in tags)
+    return index_html[:m.start(2)] + rebuilt + index_html[m.end(2):]
+
+
+def rebuild_tags_cloud_from_cards(index_html: str) -> str:
+    anchor_re = r'<a\b[^>]*class="[^"]*\bpost-card\b[^"]*"[^>]*>'
+    tags: list[str] = []
+    seen: set[str] = set()
+    for m in re.finditer(anchor_re, index_html, re.I):
+        tag = m.group(0)
+        mt = re.search(r'data-tags="([^"]*)"', tag, re.I)
+        if not mt:
+            continue
+        for t in mt.group(1).split(","):
+            tt = html_lib.unescape(t).strip()
+            if tt and tt not in seen:
+                seen.add(tt)
+                tags.append(tt)
+
+    m = re.search(r'(<div class="tags-cloud">)(.*?)(</div>)', index_html, re.S)
+    if not m:
+        return index_html
+    rebuilt = "".join(f'<span class="tag-pill">{html_lib.escape(t)}</span>' for t in tags)
+    return index_html[:m.start(2)] + rebuilt + index_html[m.end(2):]
+
+
+def update_card_tags(index_html: str, href: str, tags: list[str]) -> tuple[str, bool]:
+    href_escaped = html_lib.escape(href, quote=True)
+    anchor_re = rf'(<a\b[^>]*\bhref="{re.escape(href_escaped)}"[^>]*\bclass="[^"]*\bpost-card\b[^"]*"[^>]*>)'
+    m = re.search(anchor_re, index_html, re.I)
+    if not m:
+        return index_html, False
+
+    tag = m.group(1)
+    norm_tags = normalize_tags(tags)
+    if norm_tags:
+        attr_value = html_lib.escape(",".join(norm_tags), quote=True)
+        if re.search(r'\sdata-tags="[^"]*"', tag, re.I):
+            new_tag = re.sub(r'\sdata-tags="[^"]*"', f' data-tags="{attr_value}"', tag, count=1, flags=re.I)
+        else:
+            new_tag = tag[:-1] + f' data-tags="{attr_value}">'
+    else:
+        new_tag = re.sub(r'\sdata-tags="[^"]*"', "", tag, count=1, flags=re.I)
+
+    return index_html[:m.start(1)] + new_tag + index_html[m.end(1):], True
+
+
+def inject_template_elements(
+    html: str,
+    template_html: str,
+    *,
+    cat: str | None = None,
+    current_name: str | None = None,
+) -> str:
     """Inject/replace structural template elements (header, footer, wechat modal, scripts)
     from the site template into an imported HTML post."""
 
@@ -548,7 +1037,15 @@ def inject_template_elements(html: str, template_html: str) -> str:
         else:
             html = html.replace('</body>', tmpl_wechat + '\n\n</body>', 1)
 
-    # ── 4. CSS / font assets ──────────────────────────────────────────────
+    # ── 4. favicon ─────────────────────────────────────────────────────────
+    if 'rel="icon"' not in html:
+        html = re.sub(
+            r'(<meta\s+name="viewport"[^>]*>\s*)',
+            r'\1<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"/>\n',
+            html, count=1, flags=re.I,
+        )
+
+    # ── 5. CSS / font assets ──────────────────────────────────────────────
     # Inject style.css FIRST (right after <head>) so original inline <style>
     # blocks appear later in the cascade and keep their design intact.
     # Only IBM Plex Mono is needed for the header — skip Noto Sans SC to
@@ -565,7 +1062,7 @@ def inject_template_elements(html: str, template_html: str) -> str:
             html, count=1, flags=re.I,
         )
 
-    # ── 5. JS assets ─────────────────────────────────────────────────────
+    # ── 6. JS assets ─────────────────────────────────────────────────────
     js_deps = [
         ('cdn.jsdelivr.net/npm/marked',
          '<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>'),
@@ -577,6 +1074,37 @@ def inject_template_elements(html: str, template_html: str) -> str:
     for needle, tag in js_deps:
         if needle not in html:
             html = html.replace('</body>', tag + '\n</body>', 1)
+
+    # ── 7. Auto prev/next for current imported post ──────────────────────
+    if cat and current_name:
+        cat_dir = POSTS / cat
+        if cat_dir.exists():
+            posts = []
+            for path in sorted(cat_dir.glob("*.html")):
+                if path.name.startswith("_"):
+                    continue
+                try:
+                    p_html = read_text(path)
+                except Exception:
+                    continue
+                p_title = (
+                    extract_first(p_html, r"<h1[^>]*class=\"post-title\"[^>]*>(.*?)</h1>")
+                    or extract_first(p_html, r"<h1[^>]*>(.*?)</h1>")
+                    or guess_title(p_html)
+                    or path.stem
+                )
+                p_date = parse_iso_date(guess_date(p_html))
+                if p_date is None:
+                    p_date = datetime.fromtimestamp(path.stat().st_mtime).date()
+                posts.append({"name": path.name, "title": p_title, "date": p_date})
+
+            posts.sort(key=lambda x: (x["date"], x["name"]), reverse=True)
+            idx = next((i for i, p in enumerate(posts) if p["name"] == current_name), -1)
+            if idx >= 0:
+                newer = posts[idx - 1] if idx - 1 >= 0 else None
+                older = posts[idx + 1] if idx + 1 < len(posts) else None
+                html = replace_nav_link(html, "prev", render_nav_link("prev", newer))
+                html = replace_nav_link(html, "next", render_nav_link("next", older))
 
     return html
 
@@ -646,13 +1174,26 @@ def update_counts(index_html: str) -> str:
     return index_html
 
 
-def build_card(href: str, cat: str, title: str, excerpt: str, date_str: str, meta_text: str) -> str:
+def build_card(
+    href: str,
+    cat: str,
+    title: str,
+    excerpt: str,
+    date_str: str,
+    meta_text: str,
+    tags: Optional[list[str]] = None,
+) -> str:
     cat_name = CATEGORIES[cat]["name"]
     cat_class = CATEGORIES[cat]["class"]
+    tag_attr = ""
+    if tags:
+        safe = [t.strip() for t in tags if t.strip()]
+        if safe:
+            tag_attr = f' data-tags="{html_lib.escape(",".join(safe), quote=True)}"'
     # keep indentation consistent with index.html (8 spaces)
     return (
         "\n\n        <!-- {cat_name} -->\n"
-        "        <a href=\"{href}\" class=\"post-card\" data-cat=\"{cat}\">\n"
+        "        <a href=\"{href}\" class=\"post-card\" data-cat=\"{cat}\"{tag_attr}>\n"
         "          <div class=\"pc-top\"><span class=\"cat {cat_class}\"><span class=\"cat-dot\"></span>{cat_name}</span><span class=\"post-date\">{date}</span></div>\n"
         "          <h2 class=\"post-title\">{title}</h2>\n"
         "          <p class=\"post-excerpt\">{excerpt}</p>\n"
@@ -662,6 +1203,7 @@ def build_card(href: str, cat: str, title: str, excerpt: str, date_str: str, met
         cat_name=cat_name,
         href=href,
         cat=cat,
+        tag_attr=tag_attr,
         cat_class=cat_class,
         date=date_str,
         title=title,
@@ -763,6 +1305,7 @@ def main() -> None:
     ap.add_argument("--meta", help="Post meta text (e.g., 约 8 分钟)")
     ap.add_argument("--ui", action="store_true", help="Use UI dialogs to pick file and fields")
     ap.add_argument("--ui-md", action="store_true", help="Use Markdown editor UI to generate HTML and import")
+    ap.add_argument("--manage-tags", action="store_true", help="Manage tags for an existing HTML post")
     ap.add_argument("--repair", action="store_true", help="Repair an existing generated HTML using template + embedded Markdown")
     args = ap.parse_args()
 
@@ -816,21 +1359,85 @@ def main() -> None:
             args.ui_md = True
         elif mode == "html":
             args.ui = True
+        elif mode == "manage_tags":
+            args.manage_tags = True
+            args.ui = True
         else:
             raise SystemExit("已取消")
+
+    if args.manage_tags:
+        while True:
+            target_file = args.file
+            if args.ui or not target_file:
+                picked = ui_pick_existing_post_file()
+                if not picked:
+                    print("已退出标签管理。")
+                    return
+                target_file = picked
+
+            src = Path(target_file).expanduser().resolve()
+            if not src.exists() or src.suffix.lower() != ".html":
+                raise SystemExit("输入文件不存在或不是 .html 文件")
+
+            try:
+                src.relative_to(POSTS)
+            except ValueError:
+                raise SystemExit("请选择 posts/ 目录下的文章文件")
+
+            html = read_text(src)
+            current_tags = extract_keywords_meta(html)
+            edited_tags = ui_edit_post_tags(
+                str(src),
+                existing_tags=load_existing_tags(),
+                initial_tags=current_tags,
+            )
+            if edited_tags is None:
+                if args.ui:
+                    # 返回文章列表继续选择，而不是退出。
+                    args.file = None
+                    continue
+                raise SystemExit("已取消")
+
+            html = set_keywords_meta(html, edited_tags)
+            write_text(src, html)
+
+            href = str(src.relative_to(ROOT)).replace(os.sep, "/")
+            index_html = read_text(INDEX)
+            index_html, found = update_card_tags(index_html, href, edited_tags)
+            index_html = rebuild_tags_cloud_from_cards(index_html)
+            write_text(INDEX, index_html)
+
+            print("标签已更新：")
+            print(f"- 页面: {src}")
+            print(f"- 标签: {', '.join(edited_tags) if edited_tags else '(无)'}")
+            if not found:
+                print("- 提示: 首页未找到对应卡片，仅更新了文章 meta keywords。")
+
+            if not args.ui:
+                return
+
+            # UI 模式下，完成一篇后回到列表继续管理
+            args.file = None
 
     if args.ui_md:
         template_html = read_text(ROOT / "posts" / "_template.html")
         # extract default markdown from template
         m = re.search(r"<script type=\"text/markdown\"[^>]*>(.*?)</script>", template_html, re.S)
         default_md = m.group(1).strip() if m else "# 标题\\n\\n正文内容。"
-        ui_result = ui_markdown_import("my-post.html", "robotics", default_md, template_html)
+        ui_result = ui_markdown_import(
+            "my-post.html",
+            "robotics",
+            default_md,
+            template_html,
+            existing_tags=load_existing_tags(),
+        )
         if not ui_result:
             raise SystemExit("已取消")
 
         filename = ui_result["filename"]
         cat = ui_result["cat"]
         markdown = ui_result["markdown"]
+        tags = ui_result.get("tags", [])
 
         if not filename.lower().endswith(".html"):
             filename += ".html"
@@ -856,15 +1463,17 @@ def main() -> None:
         dest_dir = POSTS / cat
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / filename
+        html_out = apply_keywords_meta(html_out, tags)
         write_text(dest, html_out)
 
         # update index.html
         index_html = read_text(INDEX)
         href = f"posts/{cat}/{dest.name}"
         if href not in index_html:
-            card_html = build_card(href, cat, html_lib.escape(title), html_lib.escape(excerpt), date_str, read_label)
+            card_html = build_card(href, cat, html_lib.escape(title), html_lib.escape(excerpt), date_str, read_label, tags=tags)
             index_html = insert_card(index_html, card_html)
         index_html = update_counts(index_html)
+        index_html = update_tags_cloud(index_html, tags)
         write_text(INDEX, index_html)
         update_nav_links_for_category(cat)
 
@@ -890,34 +1499,44 @@ def main() -> None:
 
     html = read_text(src)
 
-    cat = args.cat
-    if not cat:
-        if args.ui:
-            cat = ui_pick_category("robotics")
-        else:
+    tags: list[str] = []
+    if args.ui:
+        form = ui_html_import_form(
+            file_path=str(src),
+            default_cat=args.cat or "robotics",
+            default_title=args.title or guess_title(html) or "",
+            default_excerpt=args.excerpt or guess_excerpt(html) or "",
+            default_date=args.date or guess_date(html) or date.today().isoformat(),
+            default_meta=args.meta or guess_read(html) or estimate_read_time_from_html(html),
+            existing_tags=load_existing_tags(),
+        )
+        if not form:
+            raise SystemExit("已取消")
+        cat = form["cat"]
+        title = form["title"]
+        excerpt = form["excerpt"]
+        date_str = form["date"]
+        meta_text = form["meta"]
+        tags = form.get("tags", [])
+    else:
+        cat = args.cat
+        if not cat:
             cat = prompt_if_missing("分类 (cs/cpp/robotics/personal)", None)
-        if not cat or cat not in CATEGORIES:
-            raise SystemExit("分类不合法")
+            if not cat or cat not in CATEGORIES:
+                raise SystemExit("分类不合法")
 
-    title = args.title or guess_title(html)
-    if args.ui:
-        title = ui_ask_string("标题", "标题", title) or title
-    title = prompt_if_missing("标题", title)
+        title = args.title or guess_title(html)
+        title = prompt_if_missing("标题", title)
 
-    excerpt = args.excerpt or guess_excerpt(html)
-    if args.ui:
-        excerpt = ui_ask_string("摘要", "摘要", excerpt) or excerpt
-    excerpt = prompt_if_missing("摘要", excerpt)
+        excerpt = args.excerpt or guess_excerpt(html)
+        excerpt = prompt_if_missing("摘要", excerpt)
 
-    date_str = args.date or guess_date(html) or date.today().isoformat()
-    if args.ui:
-        date_str = ui_ask_string("日期", "日期 (YYYY-MM-DD)", date_str) or date_str
-    date_str = prompt_if_missing("日期 (YYYY-MM-DD)", date_str, date_str)
+        date_str = args.date or guess_date(html) or date.today().isoformat()
+        date_str = prompt_if_missing("日期 (YYYY-MM-DD)", date_str, date_str)
 
-    meta_text = args.meta or guess_read(html) or "新文章"
-    if args.ui:
-        meta_text = ui_ask_string("元信息", "元信息 (例如: 约 8 分钟)", meta_text) or meta_text
-    meta_text = prompt_if_missing("元信息 (例如: 约 8 分钟)", meta_text, meta_text)
+        # 元信息默认自动计算，不再要求手填。
+        # 优先使用页面已有 post-head-read，其次按正文估算阅读时长。
+        meta_text = args.meta or guess_read(html) or estimate_read_time_from_html(html)
 
     # move/copy into posts/<cat>/
     dest_dir = POSTS / cat
@@ -931,7 +1550,13 @@ def main() -> None:
     template_html = read_text(ROOT / "posts" / "_template.html")
     dest_html = read_text(dest)
     dest_html = adjust_relative_paths(dest_html)
-    dest_html = inject_template_elements(dest_html, template_html)
+    dest_html = inject_template_elements(
+        dest_html,
+        template_html,
+        cat=cat,
+        current_name=dest.name,
+    )
+    dest_html = apply_keywords_meta(dest_html, tags)
     write_text(dest, dest_html)
 
     # update index.html
@@ -940,10 +1565,11 @@ def main() -> None:
     if href in index_html:
         print("index.html 已包含该链接，跳过插入卡片。")
     else:
-        card_html = build_card(href, cat, title, excerpt, date_str, meta_text)
+        card_html = build_card(href, cat, title, excerpt, date_str, meta_text, tags=tags)
         index_html = insert_card(index_html, card_html)
 
     index_html = update_counts(index_html)
+    index_html = update_tags_cloud(index_html, tags)
     write_text(INDEX, index_html)
     update_nav_links_for_category(cat)
 

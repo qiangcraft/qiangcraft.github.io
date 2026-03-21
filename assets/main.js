@@ -37,21 +37,47 @@ document.addEventListener('DOMContentLoaded', () => {
   const navBtns   = document.querySelectorAll('.nav-cat-btn');
   const topicRows = document.querySelectorAll('.topic-row[data-filter]');
   const heroCatLinks = document.querySelectorAll('[data-cat-jump]');
+  const tagPills = document.querySelectorAll('.tag-pill');
   const cards     = document.querySelectorAll('.post-card[data-cat]');
   const countEl   = document.getElementById('post-count');
   const emptyEl   = document.getElementById('empty-state');
 
   if (navBtns.length && cards.length) {
-    function setFilter(cat) {
-      navBtns.forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+    let activeTag = '';
+
+    function cardHasTag(card, tag) {
+      const raw = card.dataset.tags || '';
+      if (!raw || !tag) return false;
+      const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
+      return arr.includes(tag);
+    }
+
+    function applyVisibility(predicate) {
       let visible = 0;
       cards.forEach(card => {
-        const show = cat === 'all' || card.dataset.cat === cat;
+        const show = predicate(card);
         card.classList.toggle('hidden', !show);
         if (show) visible++;
       });
       if (countEl) countEl.textContent = visible + ' 篇';
       if (emptyEl) emptyEl.classList.toggle('visible', visible === 0);
+    }
+
+    function setFilter(cat) {
+      activeTag = '';
+      tagPills.forEach(p => p.classList.remove('active'));
+      navBtns.forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+      applyVisibility(card => cat === 'all' || card.dataset.cat === cat);
+    }
+
+    function setTagFilter(tag) {
+      activeTag = tag;
+      navBtns.forEach(b => b.classList.toggle('active', b.dataset.cat === 'all'));
+      tagPills.forEach(p => {
+        const t = (p.textContent || '').trim();
+        p.classList.toggle('active', t === tag);
+      });
+      applyVisibility(card => cardHasTag(card, tag));
     }
     navBtns.forEach(b => b.addEventListener('click', () => {
       setFilter(b.dataset.cat);
@@ -65,6 +91,16 @@ document.addEventListener('DOMContentLoaded', () => {
       ev.preventDefault();
       const cat = link.getAttribute('data-cat-jump') || 'all';
       setFilter(cat);
+      document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    tagPills.forEach(p => p.addEventListener('click', () => {
+      const t = (p.textContent || '').trim();
+      if (!t) return;
+      if (activeTag === t) {
+        setFilter('all');
+      } else {
+        setTagFilter(t);
+      }
       document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }));
 
@@ -81,6 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const postDate = (doc.querySelector('.post-head-date')?.textContent || '').trim();
             const dateEl = card.querySelector('.post-date');
             if (postDate && dateEl) dateEl.textContent = postDate;
+
+            const kw = (doc.querySelector('meta[name="keywords"]')?.getAttribute('content') || '').trim();
+            if (kw && !card.dataset.tags) {
+              card.dataset.tags = kw.split(',').map(s => s.trim()).filter(Boolean).join(',');
+            }
 
             const mdText = doc.querySelector('script[type="text/markdown"]')?.textContent || '';
             const mins = mdText ? estimateReadMinutes(mdText) : null;
