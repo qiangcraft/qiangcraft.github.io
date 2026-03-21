@@ -180,6 +180,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /* ── 文章页：浏览量统计并显示 ── */
+  if (location.pathname.includes('/posts/')) {
+    let viewsEl = document.querySelector('.post-head-views');
+    let compactMode = false;
+
+    if (!viewsEl) {
+      const metaWrap = document.querySelector('.post-head-meta');
+      if (metaWrap) {
+        const dot = document.createElement('span');
+        dot.className = 'post-head-dot';
+        viewsEl = document.createElement('span');
+        viewsEl.className = 'post-head-views';
+        viewsEl.textContent = '浏览 --';
+        metaWrap.appendChild(dot);
+        metaWrap.appendChild(viewsEl);
+      }
+    }
+
+    // 非模板文章页：在副标题/元信息行后追加紧凑浏览量显示
+    if (!viewsEl) {
+      const host = document.querySelector('.meta') || document.querySelector('.subtitle');
+      if (host) {
+        compactMode = true;
+        viewsEl = document.createElement('span');
+        viewsEl.className = 'post-head-views post-head-views--compact';
+        viewsEl.textContent = '浏览 --';
+        viewsEl.style.marginLeft = '.5rem';
+        viewsEl.style.color = 'inherit';
+        viewsEl.style.opacity = '.75';
+        host.appendChild(viewsEl);
+      }
+    }
+
+    if (viewsEl) {
+      const pageKey = (location.pathname || 'unknown')
+        .replace(/^\/+/, '')
+        .replace(/[^a-zA-Z0-9/_-]+/g, '_');
+
+      const setValue = (v) => {
+        if (Number.isFinite(v) && v > 0) {
+          viewsEl.textContent = compactMode ? `· 浏览 ${v}` : `浏览 ${v}`;
+        } else {
+          viewsEl.textContent = compactMode ? '· 浏览 --' : '浏览 --';
+        }
+      };
+
+      const localFallback = () => {
+        try {
+          const k = `qc_local_views_${pageKey}`;
+          const v = (parseInt(localStorage.getItem(k) || '0', 10) || 0) + 1;
+          localStorage.setItem(k, String(v));
+          setValue(v);
+        } catch (_) {
+          setValue(NaN);
+        }
+      };
+
+      if (location.protocol === 'file:') {
+        localFallback();
+      } else {
+        const ns = 'qiangcraft-github-io';
+        const url = `https://api.countapi.xyz/hit/${encodeURIComponent(ns)}/${encodeURIComponent(pageKey)}`;
+        fetch(url)
+          .then(r => (r.ok ? r.json() : Promise.reject(new Error('countapi failed'))))
+          .then(data => setValue(Number(data?.value)))
+          .catch(() => localFallback());
+      }
+    }
+  }
+
   /* ── 首页：微信二维码弹窗 ── */
   const wechatModal = document.getElementById('wechat-modal');
   if (wechatModal) {
