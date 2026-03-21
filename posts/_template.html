@@ -185,40 +185,6 @@ pre.code-block .lang-label {
 .toc-item:hover, .toc-item.active { color: var(--text); background: var(--bg-3); border-left-color: var(--cs); }
 .toc-item--h3 { padding-left: 2rem; font-size: .62rem; }
 
-/* 微信二维码弹窗 */
-.wechat-modal {
-  position: fixed; inset: 0; z-index: 1200;
-  display: none; align-items: center; justify-content: center;
-  background: rgba(5, 8, 14, .72);
-}
-.wechat-modal.is-open { display: flex; }
-.wechat-modal-card {
-  width: min(92vw, 430px);
-  background: var(--bg-2);
-  border: 1px solid var(--border-2);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0,0,0,.45);
-}
-.wechat-modal-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: .8rem 1rem; border-bottom: 1px solid var(--border);
-  font-family: var(--ff-mono); font-size: .66rem; color: var(--text-2);
-}
-.wechat-close {
-  border: 1px solid var(--border); background: var(--bg-3); color: var(--text-2);
-  border-radius: 8px; padding: .2rem .55rem; cursor: pointer;
-}
-.wechat-close:hover { color: var(--text); border-color: var(--border-2); }
-.wechat-modal-body { padding: 1rem; }
-.wechat-qr {
-  width: 100%; height: auto; display: block;
-  border-radius: 10px; border: 1px solid var(--border);
-}
-.wechat-tip {
-  margin-top: .7rem; font-size: .72rem; color: var(--text-3);
-  font-family: var(--ff-mono);
-}
 
 @media (max-width: 900px) {
   .post-layout { grid-template-columns: 1fr; }
@@ -364,7 +330,7 @@ int main() {
       <p class="footer-copy">© 2026 — 写代码，也写人</p>
       <div class="footer-links">
         <a href="https://github.com/qiangcraft">GitHub</a>
-        <a href="mailto:hello@qiangcraft.dev">邮件</a>
+        <a href="mailto:qiangz514@foxmail.com">邮件</a>
         <a href="#" data-open-wechat>微信</a>
       </div>
     </div>
@@ -372,9 +338,9 @@ int main() {
 </footer>
 
 <div class="wechat-modal" id="wechat-modal" aria-hidden="true">
-  <div class="wechat-modal-card" role="dialog" aria-modal="true" aria-label="微信二维码">
+  <div class="wechat-modal-card" role="dialog" aria-modal="true" aria-label="与我联系">
     <div class="wechat-modal-head">
-      <span>微信二维码</span>
+      <span>与我联系</span>
       <button class="wechat-close" id="wechat-close" type="button">关闭</button>
     </div>
     <div class="wechat-modal-body">

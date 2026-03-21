@@ -152,6 +152,41 @@ footer {
 .cmt { color: var(--text-3); font-style: italic; }
 .num { color: var(--personal); }
 
+/* ── 微信弹窗 ── */
+.wechat-modal {
+  position: fixed; inset: 0; z-index: 1200;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(5, 8, 14, .72);
+}
+.wechat-modal.is-open { display: flex; }
+.wechat-modal-card {
+  width: min(92vw, 320px);
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,.45);
+}
+.wechat-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .8rem 1rem; border-bottom: 1px solid var(--border);
+  font-family: var(--ff-mono); font-size: .66rem; color: var(--text-2);
+}
+.wechat-close {
+  border: 1px solid var(--border); background: var(--bg-3); color: var(--text-2);
+  border-radius: 8px; padding: .2rem .55rem; cursor: pointer; font-size: .62rem;
+}
+.wechat-close:hover { color: var(--text); border-color: var(--border-2); }
+.wechat-modal-body { padding: 1rem; }
+.wechat-qr {
+  width: 100%; height: auto; display: block;
+  border-radius: 10px; border: 1px solid var(--border);
+}
+.wechat-tip {
+  margin-top: .7rem; font-size: .72rem; color: var(--text-3);
+  font-family: var(--ff-mono); text-align: center;
+}
+
 /* ── 响应式 ── */
 @media (max-width: 768px) {
   .container, .container--narrow { padding: 0 1.25rem; }

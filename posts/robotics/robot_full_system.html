@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../assets/style.css"/>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
@@ -105,6 +108,21 @@
 </style>
 </head>
 <body>
+
+<header id="hdr">
+  <div class="container">
+    <nav class="nav">
+      <a href="../../index.html" class="nav-logo">
+        <span class="logo-bracket">[</span>qiangcraft<span class="logo-bracket">]</span>
+        <span class="logo-cursor"></span>
+      </a>
+      <div class="nav-right">
+        <a href="../../index.html" class="nav-text-link">← 返回首页</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
 <h1>人形机器人系统总览</h1>
 <p class="subtitle">传感器 · 执行器 · 通信协议 · 身体结构 · 软件架构 · 具身智能</p>
 
@@ -414,5 +432,35 @@
 </g>
 
 </svg>
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo"><span style="color:var(--text-3)">[</span>qiangcraft<span style="color:var(--text-3)">]</span></div>
+      <p class="footer-copy">© 2026 — 写代码，也写人</p>
+      <div class="footer-links">
+        <a href="https://github.com/qiangcraft">GitHub</a>
+        <a href="mailto:qiangz514@foxmail.com">邮件</a>
+        <a href="#" data-open-wechat>微信</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="wechat-modal" id="wechat-modal" aria-hidden="true">
+  <div class="wechat-modal-card" role="dialog" aria-modal="true" aria-label="与我联系">
+    <div class="wechat-modal-head">
+      <span>与我联系</span>
+      <button class="wechat-close" id="wechat-close" type="button">关闭</button>
+    </div>
+    <div class="wechat-modal-body">
+      <img src="../../contact/wechat.jpeg" alt="微信二维码" class="wechat-qr" id="wechat-qr"/>
+      <p class="wechat-tip" id="wechat-tip">扫码添加微信</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="../../assets/main.js"></script>
 </body>
 </html>

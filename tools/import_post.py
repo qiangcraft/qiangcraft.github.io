@@ -498,6 +498,89 @@ def adjust_relative_paths(html: str) -> str:
     return html
 
 
+def inject_template_elements(html: str, template_html: str) -> str:
+    """Inject/replace structural template elements (header, footer, wechat modal, scripts)
+    from the site template into an imported HTML post."""
+
+    def extract_block(src: str, open_re: str, close_tag: str) -> str | None:
+        m = re.search(open_re, src, re.I | re.S)
+        if not m:
+            return None
+        start = m.start()
+        end = src.find(close_tag, m.end())
+        if end == -1:
+            return None
+        return src[start : end + len(close_tag)]
+
+    # ── Extract template sections ────────────────────────────────────────
+    tmpl_header = extract_block(template_html, r'<header\b', '</header>')
+    tmpl_footer = extract_block(template_html, r'<footer\b', '</footer>')
+
+    # WeChat modal: outer div ends right before the first <script> block
+    wm = re.search(r'(<div class="wechat-modal"[\s\S]*?</div>)\s*\n\n<script', template_html)
+    tmpl_wechat = wm.group(1) if wm else None
+
+    # ── 1. Header (nav) ─────────────────────────────────────────────────
+    if tmpl_header:
+        existing = extract_block(html, r'<header\b', '</header>')
+        if existing:
+            html = html.replace(existing, tmpl_header, 1)
+        else:
+            html = re.sub(
+                r'(<body\b[^>]*>)',
+                r'\1\n\n' + tmpl_header + '\n',
+                html, count=1, flags=re.I,
+            )
+
+    # ── 2. Footer ────────────────────────────────────────────────────────
+    if tmpl_footer:
+        existing = extract_block(html, r'<footer\b', '</footer>')
+        if existing:
+            html = html.replace(existing, tmpl_footer, 1)
+        else:
+            html = html.replace('</body>', tmpl_footer + '\n\n</body>', 1)
+
+    # ── 3. WeChat modal ──────────────────────────────────────────────────
+    if tmpl_wechat and 'wechat-modal' not in html:
+        m2 = re.search(r'<script\b', html)
+        if m2:
+            html = html[: m2.start()] + tmpl_wechat + '\n\n' + html[m2.start() :]
+        else:
+            html = html.replace('</body>', tmpl_wechat + '\n\n</body>', 1)
+
+    # ── 4. CSS / font assets ──────────────────────────────────────────────
+    # Inject style.css FIRST (right after <head>) so original inline <style>
+    # blocks appear later in the cascade and keep their design intact.
+    # Only IBM Plex Mono is needed for the header — skip Noto Sans SC to
+    # avoid CJK font-fallback issues (Korean glyphs, etc.).
+    fonts_tag = (
+        '<link rel="preconnect" href="https://fonts.googleapis.com"/>\n'
+        '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono'
+        ':ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>'
+    )
+    if 'assets/style.css' not in html:
+        html = re.sub(
+            r'(<head\b[^>]*>)',
+            r'\1\n' + fonts_tag + '\n<link rel="stylesheet" href="../../assets/style.css"/>',
+            html, count=1, flags=re.I,
+        )
+
+    # ── 5. JS assets ─────────────────────────────────────────────────────
+    js_deps = [
+        ('cdn.jsdelivr.net/npm/marked',
+         '<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>'),
+        ('highlight.js/11',
+         '<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>'),
+        ('assets/main.js',
+         '<script src="../../assets/main.js"></script>'),
+    ]
+    for needle, tag in js_deps:
+        if needle not in html:
+            html = html.replace('</body>', tag + '\n</body>', 1)
+
+    return html
+
+
 def insert_card(index_html: str, card_html: str) -> str:
     if card_html.strip() in index_html:
         return index_html
@@ -845,8 +928,10 @@ def main() -> None:
     if src.resolve() != dest.resolve():
         shutil.copy2(src, dest)
 
+    template_html = read_text(ROOT / "posts" / "_template.html")
     dest_html = read_text(dest)
     dest_html = adjust_relative_paths(dest_html)
+    dest_html = inject_template_elements(dest_html, template_html)
     write_text(dest, dest_html)
 
     # update index.html

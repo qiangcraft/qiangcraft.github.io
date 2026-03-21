@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../assets/style.css"/>
+<title>Tesla Optimus 整体系统技术架构</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  background: #f5f4f0;
+  color: #1a1a1a;
+}
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 32px 60px;
+}
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 6px;
+}
+.meta {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 36px;
+}
+
+/* ── layer cards ── */
+.layer {
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.layer-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.layer-header:hover { filter: brightness(0.97); }
+.layer-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  opacity: 0.7;
+  min-width: 80px;
+}
+.layer-title {
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1;
+}
+.layer-summary {
+  font-size: 12px;
+  opacity: 0.65;
+  flex: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chevron {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+.layer.open .chevron { transform: rotate(90deg); }
+
+.layer-body {
+  display: none;
+  padding: 0 18px 18px;
+}
+.layer.open .layer-body { display: block; }
+
+/* node grid */
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.node {
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0,0,0,0.07);
+}
+.node-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.node-items {
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1.7;
+}
+.node-items span {
+  display: block;
+}
+.node-items span::before {
+  content: "· ";
+}
+
+/* flow arrows between layers */
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  gap: 6px;
+  font-size: 11px;
+  color: #aaa;
+}
+.flow-arrow svg { opacity: 0.4; }
+
+/* ── color themes ── */
+/* L1 compute: purple */
+.l-compute { background: #EEEDFE; }
+.l-compute .layer-header { background: #EEEDFE; color: #26215C; }
+.l-compute .node { background: #E4E2FC; }
+.l-compute .node-title { color: #3C3489; }
+
+/* L2 AI/algo: blue */
+.l-ai { background: #E6F1FB; }
+.l-ai .layer-header { background: #E6F1FB; color: #042C53; }
+.l-ai .node { background: #D8EAFA; }
+.l-ai .node-title { color: #0C447C; }
+
+/* L3 perception: teal */
+.l-sense { background: #E1F5EE; }
+.l-sense .layer-header { background: #E1F5EE; color: #04342C; }
+.l-sense .node { background: #CDEEE3; }
+.l-sense .node-title { color: #085041; }
+
+/* L4 motion: coral */
+.l-motion { background: #FAECE7; }
+.l-motion .layer-header { background: #FAECE7; color: #4A1B0C; }
+.l-motion .node { background: #F6DDD4; }
+.l-motion .node-title { color: #712B13; }
+
+/* L5 power: amber */
+.l-power { background: #FAEEDA; }
+.l-power .layer-header { background: #FAEEDA; color: #412402; }
+.l-power .node { background: #F6E4C2; }
+.l-power .node-title { color: #633806; }
+
+/* L6 comm: green */
+.l-comm { background: #EAF3DE; }
+.l-comm .layer-header { background: #EAF3DE; color: #173404; }
+.l-comm .node { background: #D8ECC0; }
+.l-comm .node-title { color: #27500A; }
+
+/* L7 physical: gray */
+.l-phys { background: #F1EFE8; }
+.l-phys .layer-header { background: #F1EFE8; color: #2C2C2A; }
+.l-phys .node { background: #E8E6DC; }
+.l-phys .node-title { color: #444441; }
+
+/* legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+  padding: 14px 18px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e8e6e0;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="container">
+    <nav class="nav">
+      <a href="../../index.html" class="nav-logo">
+        <span class="logo-bracket">[</span>qiangcraft<span class="logo-bracket">]</span>
+        <span class="logo-cursor"></span>
+      </a>
+      <div class="nav-right">
+        <a href="../../index.html" class="nav-text-link">← 返回首页</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <h1>Tesla Optimus 整体系统技术架构</h1>
+  <div class="meta">点击每层展开详细模块 · 从上至下：决策 → 感知 → 控制 → 物理</div>
+
+  <!-- L1: Compute -->
+  <div class="layer l-compute" id="l1">
+    <div class="layer-header" onclick="toggle('l1')">
+      <span class="layer-label">L1 计算</span>
+      <span class="layer-title">核心算力平台</span>
+      <span class="layer-summary">Tesla AI4 SoC · 双冗余 · 72 TOPS NPU · Dojo 训练</span>
+      <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="layer-body">
+      <div class="node-grid">
+        <div class="node">
+          <div class="node-title">Bot Brain SoC（AI4）</div>
+          <div class="node-items">
+            <span>Samsung 7nm 制程</span>
+            <span>双模块冗余架构（互相校验）</span>
+            <span>72 TOPS NPU（神经网络加速）</span>
+            <span>LPDDR5 高带宽内存</span>
+            <span>CPU + GPU + NPU 三合一</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">Dojo 超算（云端训练）</div>
+          <div class="node-items">
+            <span>Tesla 自研 D1 训练芯片</span>
+            <span>ExaPOD 集群架构</span>
+            <span>处理机队回传的海量视频数据</span>
+            <span>每次训练迭代 70,000+ GPU 小时</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">AI5 芯片路线图</div>
+          <div class="node-items">
+            <span>预计 2026–2027 年量产</span>
+            <span>性能较 AI4 提升 3–5×</span>
+            <span>将用于 Cybercab 与 Optimus 下代</span>
+            <span>9 个月快速迭代设计周期</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">安全芯片（独立）</div>
+          <div class="node-items">
+            <span>OTA 更新签名验证</span>
+            <span>与主 SoC 物理隔离</span>
+            <span>本地化安全策略执行</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="12" height="16" viewBox="0 0 12 16"><path d="M6 0v12M1 8l5 6 5-6" stroke="#888" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    推理指令下发
+  </div>
+
+  <!-- L2: AI/Algo -->
+  <div class="layer l-ai" id="l2">
+    <div class="layer-header" onclick="toggle('l2')">
+      <span class="layer-label">L2 算法</span>
+      <span class="layer-title">AI 与软件算法栈</span>
+      <span class="layer-summary">端到端神经网络 · FSD 移植 · 强化学习 · 世界模拟器</span>
+      <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="layer-body">
+      <div class="node-grid">
+        <div class="node">
+          <div class="node-title">端到端神经网络</div>
+          <div class="node-items">
+            <span>感知→规划→控制一体化</span>
+            <span>48 个子网络协同（继承 FSD v12）</span>
+            <span>替代 30 万行 C++ 规则代码</span>
+            <span>输入：摄像头原始图像</span>
+            <span>输出：关节力矩指令</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">占用网络（Occupancy）</div>
+          <div class="node-items">
+            <span>2D 图像 → 3D 空间理解</span>
+            <span>鸟瞰视角（BEV）变换</span>
+            <span>无 LiDAR 纯视觉建图</span>
+            <span>实时障碍物体素化表示</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">神经世界模拟器</div>
+          <div class="node-items">
+            <span>生成高保真合成视频</span>
+            <span>闭环仿真评估新 AI 模型</span>
+            <span>同时用于 FSD 与 Optimus</span>
+            <span>替代昂贵的真实数据采集</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">强化学习（RL）</div>
+          <div class="node-items">
+            <span>仿真环境中策略迭代</span>
+            <span>运动捕捉关键帧初始化</span>
+            <span>真实部署数据闭环优化</span>
+            <span>机队联邦学习加速收敛</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">任务理解（Grok 集成）</div>
+          <div class="node-items">
+            <span>自然语言指令解析</span>
+            <span>高层任务分解为动作序列</span>
+            <span>多模态输入（语音 + 视觉）</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">自标定 & 环境记忆</div>
+          <div class="node-items">
+            <span>启动时肢体自动校准</span>
+            <span>环境语义地图构建</span>
+            <span>场景上下文自适应行为</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="12" height="16" viewBox="0 0 12 16"><path d="M6 0v12M1 8l5 6 5-6" stroke="#888" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    感知数据上传 / 控制指令下发
+  </div>
+
+  <!-- L3: Perception -->
+  <div class="layer l-sense" id="l3">
+    <div class="layer-header" onclick="toggle('l3')">
+      <span class="layer-label">L3 感知</span>
+      <span class="layer-title">传感器系统</span>
+      <span class="layer-summary">8 摄像头 · 触觉指尖 · 关节力矩 · IMU · 脚部感知</span>
+      <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="layer-body">
+      <div class="node-grid">
+        <div class="node">
+          <div class="node-title">视觉传感器（8 摄像头）</div>
+          <div class="node-items">
+            <span>Autopilot 级鱼眼 + 长焦组合</span>
+            <span>360° 全向覆盖，无盲区</span>
+            <span>头部前置主摄（高分辨率）</span>
+            <span>无 LiDAR / 无毫米波雷达</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">触觉传感器（指尖）</div>
+          <div class="node-items">
+            <span>金属腱绳内嵌力敏元件</span>
+            <span>每指实时测量接触力</span>
+            <span>可抓鸡蛋不碎（精细力控）</span>
+            <span>Gen3 手部全覆盖</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">关节力/扭矩传感器</div>
+          <div class="node-items">
+            <span>全身 28 个关节均配备</span>
+            <span>实时输出力矩反馈</span>
+            <span>闭环阻抗控制基础</span>
+            <span>碰撞检测与安全限位</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">IMU（惯性测量单元）</div>
+          <div class="node-items">
+            <span>3 轴加速度计 + 3 轴陀螺仪</span>
+            <span>姿态估计与平衡控制</span>
+            <span>与关节编码器融合</span>
+            <span>盲走实验：纯 IMU+神经网络导航</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">脚部力/扭矩传感器</div>
+          <div class="node-items">
+            <span>六维力/力矩传感器</span>
+            <span>地面接触状态估计</span>
+            <span>步态相位检测</span>
+            <span>不平整地形自适应</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="12" height="16" viewBox="0 0 12 16"><path d="M6 0v12M1 8l5 6 5-6" stroke="#888" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    运动指令执行
+  </div>
+
+  <!-- L4: Motion/Actuator -->
+  <div class="layer l-motion" id="l4">
+    <div class="layer-header" onclick="toggle('l4')">
+      <span class="layer-label">L4 执行</span>
+      <span class="layer-title">执行器与运动控制 ECU</span>
+      <span class="layer-summary">28 躯体 DoF · Gen3 手部 50 执行器 · 行星滚柱丝杆 · 硬实时 ECU</span>
+      <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="layer-body">
+      <div class="node-grid">
+        <div class="node">
+          <div class="node-title">躯干运动控制 ECU</div>
+          <div class="node-items">
+            <span>MCU + RTOS，硬实时 &lt;1ms</span>
+            <span>管理 28 DoF（颈/肩/肘/腰/髋/膝/踝）</span>
+            <span>步态规划与平衡控制</span>
+            <span>阻抗控制 / 力矩闭环</span>
+            <span>碰撞响应与安全降级</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">手部控制 ECU</div>
+          <div class="node-items">
+            <span>MCU，硬实时</span>
+            <span>Gen3：22 DoF + 腕部 3 DoF</span>
+            <span>每侧前臂 25 个执行器</span>
+            <span>腱绳传动系统控制</span>
+            <span>触觉反馈闭环抓握</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">旋转执行器（3 型）</div>
+          <div class="node-items">
+            <span>无刷电机 + 行星齿轮减速</span>
+            <span>高速型：颈部、手腕</span>
+            <span>中速型：肩部、肘部</span>
+            <span>低速高力矩型：腰部</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">线性执行器（3 型）</div>
+          <div class="node-items">
+            <span>行星滚柱丝杆（非滚珠丝杆）</span>
+            <span>抗冲击载荷能力更强</span>
+            <span>用于髋、膝、踝关节</span>
+            <span>单执行器最大力 500 kg</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">腱绳传动系统</div>
+          <div class="node-items">
+            <span>执行器置于前臂，手指轻量化</span>
+            <span>钢丝腱绳传递抓握力</span>
+            <span>仿生人手肌腱结构</span>
+            <span>弹簧被动回复，抗卡死</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">关节编码器</div>
+          <div class="node-items">
+            <span>绝对式编码器（断电不失位）</span>
+            <span>高精度角度 / 位移反馈</span>
+            <span>与力矩传感器双闭环</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="12" height="16" viewBox="0 0 12 16"><path d="M6 0v12M1 8l5 6 5-6" stroke="#888" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    供电 / 热管理
+  </div>
+
+  <!-- L5: Power -->
+  <div class="layer l-power" id="l5">
+    <div class="layer-header" onclick="toggle('l5')">
+      <span class="layer-label">L5 能源</span>
+      <span class="layer-title">电源与热管理</span>
+      <span class="layer-summary">2.3 kWh 锂电池 · BMS ECU · 全天续航 · 重心优化</span>
+      <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="layer-body">
+      <div class="node-grid">
+        <div class="node">
+          <div class="node-title">锂离子电池组</div>
+          <div class="node-items">
+            <span>容量：2.3 kWh</span>
+            <span>位于躯干（重心优化）</span>
+            <span>复用 Tesla 4680 电池技术</span>
+            <span>轻载作业全天续航</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">BMS（电池管理 ECU）</div>
+          <div class="node-items">
+            <span>专用 MCU，模拟采样精度优先</span>
+            <span>单体电压/温度实时监控</span>
+            <span>均衡充放电控制</span>
+            <span>过充/过放/短路保护</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">PMIC 电源管理 IC</div>
+          <div class="node-items">
+            <span>多路稳压输出（各域供电）</span>
+            <span>SoC / MCU / 传感器独立供电轨</span>
+            <span>软启动与掉电保护</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">热管理系统</div>
+          <div class="node-items">
+            <span>执行器散热通道</span>
+            <span>SoC 散热模组</span>
+            <span>电池温度调控</span>
+            <span>复用 Tesla 车辆热管理经验</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="12" height="16" viewBox="0 0 12 16"><path d="M6 0v12M1 8l5 6 5-6" stroke="#888" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    数据上行 / 指令下行
+  </div>
+
+  <!-- L6: Communication -->
+  <div class="layer l-comm" id="l6">
+    <div class="layer-header" onclick="toggle('l6')">
+      <span class="layer-label">L6 通信</span>
+      <span class="layer-title">内外部通信系统</span>
+      <span class="layer-summary">内部总线 · OTA 更新 · 机队数据回传 · 安全芯片</span>
+      <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="layer-body">
+      <div class="node-grid">
+        <div class="node">
+          <div class="node-title">内部总线网络</div>
+          <div class="node-items">
+            <span>主总线：SoC ↔ 各域 ECU</span>
+            <span>次总线：ECU ↔ 传感器/执行器</span>
+            <span>协议：CAN / EtherCAT / 私有协议</span>
+            <span>实时数据帧 + 优先级仲裁</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">OTA 无线更新</div>
+          <div class="node-items">
+            <span>全软件栈远程升级</span>
+            <span>安全芯片验证签名</span>
+            <span>差分更新（节省带宽）</span>
+            <span>回滚机制（更新失败恢复）</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">机队数据回传</div>
+          <div class="node-items">
+            <span>工厂运行数据实时上传</span>
+            <span>关键场景影像回传 Dojo</span>
+            <span>联邦学习：各机共享梯度</span>
+            <span>数据飞轮：越用越聪明</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">遥操作接口（研发期）</div>
+          <div class="node-items">
+            <span>动捕套装 → 远程示教</span>
+            <span>低延迟视频流回传</span>
+            <span>逐步从遥操作过渡到自主</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="12" height="16" viewBox="0 0 12 16"><path d="M6 0v12M1 8l5 6 5-6" stroke="#888" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    物理接触世界
+  </div>
+
+  <!-- L7: Physical -->
+  <div class="layer l-phys" id="l7">
+    <div class="layer-header" onclick="toggle('l7')">
+      <span class="layer-label">L7 物理</span>
+      <span class="layer-title">机械结构与材料</span>
+      <span class="layer-summary">57 kg · 173 cm · 轻量化材料 · 仿生手部</span>
+      <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="layer-body">
+      <div class="node-grid">
+        <div class="node">
+          <div class="node-title">整体规格</div>
+          <div class="node-items">
+            <span>身高：173 cm</span>
+            <span>体重：57 kg（Gen2 较 Gen1 减重 16 kg）</span>
+            <span>有效载荷：20 kg</span>
+            <span>步速：较 Gen1 快 30%</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">结构材料</div>
+          <div class="node-items">
+            <span>金属骨架（铝合金 / 钛合金）</span>
+            <span>工程塑料外壳（减重）</span>
+            <span>与 Tesla 车辆共享材料工艺</span>
+            <span>面向量产高可靠性设计</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">手部结构（Gen3）</div>
+          <div class="node-items">
+            <span>4 指 + 对生拇指</span>
+            <span>22 DoF（人手约 27 DoF）</span>
+            <span>执行器前置于前臂</span>
+            <span>专利：欠驱动腱绳手（WO2024/073138）</span>
+          </div>
+        </div>
+        <div class="node">
+          <div class="node-title">自由度分布（Gen2 躯体）</div>
+          <div class="node-items">
+            <span>颈部：3 DoF</span>
+            <span>单臂：7 DoF × 2</span>
+            <span>腰部：3 DoF</span>
+            <span>单腿：6 DoF × 2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div style="font-size:12px;font-weight:600;color:#555;width:100%;margin-bottom:4px;">图例</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7F77DD"></div>L1 算力</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>L2 算法</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>L3 感知</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>L4 执行</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#BA7517"></div>L5 能源</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#639922"></div>L6 通信</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#888780"></div>L7 物理</div>
+    <div style="font-size:11px;color:#aaa;margin-left:auto;align-self:center;">数据截至 2026 年 3 月 · Gen2 躯体 + Gen3 手部</div>
+  </div>
+</div>
+
+<div class="wechat-modal" id="wechat-modal" aria-hidden="true">
+  <div class="wechat-modal-card" role="dialog" aria-modal="true" aria-label="与我联系">
+    <div class="wechat-modal-head">
+      <span>与我联系</span>
+      <button class="wechat-close" id="wechat-close" type="button">关闭</button>
+    </div>
+    <div class="wechat-modal-body">
+      <img src="../../contact/wechat.jpeg" alt="微信二维码" class="wechat-qr" id="wechat-qr"/>
+      <p class="wechat-tip" id="wechat-tip">扫码添加微信</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+// 默认展开所有层级
+document.querySelectorAll('.layer').forEach(el => el.classList.add('open'));
+</script>
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo"><span style="color:var(--text-3)">[</span>qiangcraft<span style="color:var(--text-3)">]</span></div>
+      <p class="footer-copy">© 2026 — 写代码，也写人</p>
+      <div class="footer-links">
+        <a href="https://github.com/qiangcraft">GitHub</a>
+        <a href="mailto:qiangz514@foxmail.com">邮件</a>
+        <a href="#" data-open-wechat>微信</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="../../assets/main.js"></script>
+</body>
+</html>

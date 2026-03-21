@@ -174,6 +174,66 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /* ── 文章页：左侧固定微信二维码 ── */
+  if (location.pathname.includes('/posts/') && !document.getElementById('wechat-float')) {
+    const styleId = 'wechat-float-style';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        .wechat-float {
+          position: fixed;
+          top: 50%;
+          left: max(8px, calc((100vw - 1200px) / 2 - 220px));
+          transform: translateY(-50%);
+          width: 190px;
+          background: var(--bg-2);
+          border: 1px solid var(--border-2);
+          border-radius: 10px;
+          padding: .55rem;
+          z-index: 900;
+          box-shadow: 0 12px 36px rgba(0,0,0,.35);
+        }
+        .wechat-float img {
+          width: 100%;
+          height: auto;
+          display: block;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+        }
+        .wechat-float .wechat-float-tip {
+          margin-top: .4rem;
+          font-family: var(--ff-mono);
+          font-size: .58rem;
+          color: var(--text-3);
+          text-align: center;
+          letter-spacing: .04em;
+        }
+        @media (max-width: 1400px) {
+          .wechat-float { width: 160px; left: 10px; }
+        }
+        @media (max-width: 980px) {
+          .wechat-float { display: none; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const float = document.createElement('aside');
+    float.className = 'wechat-float';
+    float.id = 'wechat-float';
+    float.innerHTML = `
+      <img src="../../contact/wechat.jpeg" alt="微信二维码"/>
+      <div class="wechat-float-tip">微信联系</div>
+    `;
+    document.body.appendChild(float);
+
+    const img = float.querySelector('img');
+    img?.addEventListener('error', () => {
+      float.style.display = 'none';
+    });
+  }
+
   // 把 Markdown 生成的代码块统一成现有的 code-block 样式
   document.querySelectorAll('pre > code').forEach(code => {
     // 兼容 ```C++ 这类语言名，供 highlight.js 识别
