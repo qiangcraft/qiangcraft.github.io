@@ -44,6 +44,32 @@ def strip_tags(s: str) -> str:
     return html_lib.unescape(s).strip()
 
 
+def normalize_inline_md(s: str) -> str:
+    """Normalize common inline markdown typos like '** text**' -> '**text**'."""
+    t = s or ""
+    t = re.sub(r"\*\*\s+(.+?)\s*\*\*", r"**\1**", t)
+    t = re.sub(r"(?<!\*)\*\s+(.+?)\s*\*(?!\*)", r"*\1*", t)
+    return t
+
+
+def strip_inline_md(s: str) -> str:
+    t = normalize_inline_md(s)
+    t = re.sub(r"\*\*(.+?)\*\*", r"\1", t)
+    t = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"\1", t)
+    t = re.sub(r"`(.+?)`", r"\1", t)
+    return t
+
+
+def inline_md_to_html_safe(s: str) -> str:
+    """Render a tiny safe subset for subtitle: **bold**, *italic*, `code`."""
+    t = normalize_inline_md(s)
+    t = html_lib.escape(t)
+    t = re.sub(r"`([^`]+?)`", r"<code>\1</code>", t)
+    t = re.sub(r"\*\*([^*]+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", t)
+    return t
+
+
 def extract_first(html: str, pattern: str) -> str | None:
     m = re.search(pattern, html, re.S | re.I)
     if not m:
@@ -860,17 +886,18 @@ def clean_markdown_body(md: str, title: str, excerpt: str) -> str:
 
 def apply_template(template_html: str, *, title: str, excerpt: str, date_str: str, read_text: str, cat: str, markdown: str) -> str:
     safe_title = html_lib.escape(title)
-    safe_excerpt = html_lib.escape(excerpt)
+    safe_excerpt_meta = html_lib.escape(strip_inline_md(excerpt))
+    safe_excerpt_html = inline_md_to_html_safe(excerpt)
     safe_md = markdown.replace("</script>", "<\\/script>")
 
     out = template_html
     out = re.sub(r"(?m)^<title>.*?</title>", f"<title>{safe_title} — QiangCraft</title>", out, count=1, flags=re.S)
     out = re.sub(r"(?m)^<meta name=\"description\" content=\".*?\"/>",
-                 f"<meta name=\"description\" content=\"{safe_excerpt}\"/>", out, count=1, flags=re.S)
+                 f"<meta name=\"description\" content=\"{safe_excerpt_meta}\"/>", out, count=1, flags=re.S)
     out = re.sub(r"(<span class=\"post-head-date\">).*?(</span>)", rf"\g<1>{date_str}\g<2>", out, count=1, flags=re.S)
     out = re.sub(r"(<span class=\"post-head-read\">).*?(</span>)", rf"\g<1>{read_text}\g<2>", out, count=1, flags=re.S)
     out = re.sub(r"(<h1 class=\"post-title\">).*?(</h1>)", rf"\g<1>{safe_title}\g<2>", out, count=1, flags=re.S)
-    out = re.sub(r"(<p class=\"post-subtitle\">).*?(</p>)", rf"\g<1>{safe_excerpt}\g<2>", out, count=1, flags=re.S)
+    out = re.sub(r"(<p class=\"post-subtitle\">).*?(</p>)", rf"\g<1>{safe_excerpt_html}\g<2>", out, count=1, flags=re.S)
 
     cat_name = CATEGORIES[cat]["name"]
     cat_class = CATEGORIES[cat]["class"]
@@ -916,6 +943,24 @@ def set_keywords_meta(html: str, tags: list[str]) -> str:
 
 def apply_keywords_meta(html: str, tags: list[str]) -> str:
     return set_keywords_meta(html, tags)
+
+
+def normalize_subtitle_inline_md(html: str) -> str:
+    def repl(m: re.Match) -> str:
+        open_tag, inner, close_tag = m.group(1), m.group(2), m.group(3)
+        # Already contains HTML tags (e.g. <strong>) -> keep as is.
+        if "<" in inner and ">" in inner:
+            return m.group(0)
+        text = html_lib.unescape(inner)
+        return f"{open_tag}{inline_md_to_html_safe(text)}{close_tag}"
+
+    return re.sub(
+        r'(<p\s+class="post-subtitle"[^>]*>)(.*?)(</p>)',
+        repl,
+        html,
+        count=1,
+        flags=re.S | re.I,
+    )
 
 
 def update_tags_cloud(index_html: str, new_tags: list[str]) -> str:
@@ -1105,6 +1150,9 @@ def inject_template_elements(
                 older = posts[idx + 1] if idx + 1 < len(posts) else None
                 html = replace_nav_link(html, "prev", render_nav_link("prev", newer))
                 html = replace_nav_link(html, "next", render_nav_link("next", older))
+
+    # ── 8. Normalize inline markdown inside subtitle ─────────────────────
+    html = normalize_subtitle_inline_md(html)
 
     return html
 
@@ -1471,7 +1519,15 @@ def main() -> None:
         index_html = read_text(INDEX)
         href = f"posts/{cat}/{dest.name}"
         if href not in index_html:
-            card_html = build_card(href, cat, html_lib.escape(title), html_lib.escape(excerpt), date_str, read_label, tags=tags)
+            card_html = build_card(
+                href,
+                cat,
+                html_lib.escape(strip_inline_md(title)),
+                html_lib.escape(strip_inline_md(excerpt)),
+                date_str,
+                read_label,
+                tags=tags,
+            )
             index_html = insert_card(index_html, card_html)
         index_html = update_counts(index_html)
         index_html = update_tags_cloud(index_html, tags)
@@ -1566,7 +1622,15 @@ def main() -> None:
     if href in index_html:
         print("index.html 已包含该链接，跳过插入卡片。")
     else:
-        card_html = build_card(href, cat, title, excerpt, date_str, meta_text, tags=tags)
+        card_html = build_card(
+            href,
+            cat,
+            html_lib.escape(strip_inline_md(title)),
+            html_lib.escape(strip_inline_md(excerpt)),
+            date_str,
+            meta_text,
+            tags=tags,
+        )
         index_html = insert_card(index_html, card_html)
 
     index_html = update_counts(index_html)
