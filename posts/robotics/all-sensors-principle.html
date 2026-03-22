@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"/>
+<!--
+  ╔══════════════════════════════════════════════════╗
+  ║  新文章模板 — 使用说明                              ║
+  ║  1. 复制此文件到 posts/<标签>/ 目录，改个有意义的英文名 ║
+  ║     例：posts/cpp/my-new-post.html              ║
+  ║  2. 修改下方 <title> 和 <meta> 内容               ║
+  ║  3. 填写文章头部信息（标题/日期/分类/阅读时间）       ║
+  ║  4. 在 <article> 里写正文                         ║
+  ║  5. 回到 index.html，在文章列表里加一张卡片         ║
+  ╚══════════════════════════════════════════════════╝
+-->
+
+<!-- ① 改这里：页面标题 -->
+<title>人形机器人与四足机器人：传感器分类原理与对比 — QiangCraft</title>
+<!-- ② 改这里：摘要描述 -->
+<meta name="description" content="机器人的传感器系统可类比为人体的感官系统——没有传感器，机器人就是&quot;盲聋&quot;的机械体。本文将所有传感器按**本体感知**、**环境感知**和**特殊/新兴**三大类别逐一梳理，每类以表格形式对比原理、关键参数和典型应用。"/>
+<meta name="keywords" content="人形机器人"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../assets/style.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/atom-one-dark.min.css"/>
+<style>
+/* ── 文章页专属样式 ── */
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; }
+
+/* 文章头 */
+.post-hero {
+  padding: 7rem 0 3.5rem;
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.post-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 100%);
+  pointer-events: none;
+}
+.post-breadcrumb {
+  display: flex; align-items: center; gap: .5rem;
+  font-family: var(--ff-mono); font-size: .63rem;
+  color: var(--text-3); margin-bottom: 1.8rem;
+  position: relative; z-index: 1;
+}
+.post-breadcrumb a { transition: color .2s; }
+.post-breadcrumb a:hover { color: var(--text); }
+.post-breadcrumb-sep { color: var(--text-3); }
+
+.post-head-meta {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: 1.2rem; position: relative; z-index: 1;
+}
+.post-head-date { font-family: var(--ff-mono); font-size: .65rem; color: var(--text-3); letter-spacing: .06em; }
+.post-head-read { font-family: var(--ff-mono); font-size: .65rem; color: var(--text-3); }
+.post-head-views { font-family: var(--ff-mono); font-size: .65rem; color: var(--text-3); }
+.post-head-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-3); }
+
+h1.post-title {
+  font-family: var(--ff-serif); font-weight: 600;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.22; letter-spacing: -.02em; color: var(--text);
+  margin-bottom: 1.2rem; position: relative; z-index: 1;
+}
+.post-subtitle {
+  font-size: 1.05rem; color: var(--text-2); line-height: 1.8;
+  max-width: 600px; position: relative; z-index: 1;
+}
+
+/* 正文 */
+.post-layout {
+  display: grid; grid-template-columns: 1fr 220px;
+  gap: 4rem; padding: 3.5rem 0 6rem; align-items: start;
+}
+.post-body { min-width: 0; }
+
+/* 正文排版 */
+.prose { font-size: 1.02rem; color: var(--text-2); line-height: 1.9; }
+.prose p { margin-bottom: 1.4rem; }
+.prose p:last-child { margin-bottom: 0; }
+.prose h2 {
+  font-family: var(--ff-serif); font-size: 1.5rem; font-weight: 600;
+  color: var(--text); letter-spacing: -.01em; line-height: 1.3;
+  margin: 2.8rem 0 1rem;
+}
+.prose h3 {
+  font-family: var(--ff-sans); font-size: 1.05rem; font-weight: 600;
+  color: var(--text); margin: 2rem 0 .8rem;
+}
+.prose strong { color: var(--text); font-weight: 600; }
+.prose em { font-style: italic; }
+.prose a { color: var(--cs); border-bottom: 1px solid rgba(91,156,246,.3); transition: border-color .2s; }
+.prose a:hover { border-color: var(--cs); }
+.prose ul, .prose ol { margin: 1rem 0 1.4rem 1.2rem; display: flex; flex-direction: column; gap: .4rem; }
+.prose ul li { list-style: disc; padding-left: .4rem; }
+.prose ol li { list-style: decimal; padding-left: .4rem; }
+.prose blockquote {
+  border-left: 3px solid var(--cs);
+  margin: 1.6rem 0; padding: .8rem 1.4rem;
+  background: rgba(91,156,246,.05); border-radius: 0 var(--r) var(--r) 0;
+  color: var(--text-2); font-style: italic;
+}
+.prose hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+/* 代码块 */
+pre.code-block {
+  background: linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,0)) , var(--bg-2);
+  border: 1px solid var(--border-2); border-radius: var(--r);
+  padding: 1.2rem 1.4rem; margin: 1.4rem 0;
+  font-family: var(--ff-mono); font-size: .82rem; line-height: 1.75;
+  color: var(--text); overflow-x: auto;
+}
+pre.code-block .lang-label {
+  display: block; font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: .6rem; padding-bottom: .5rem;
+  border-bottom: 1px solid var(--border);
+}
+.copy-btn {
+  position: absolute; top: .75rem; right: .75rem;
+  font-family: var(--ff-mono); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-3); background: var(--bg-3); border: 1px solid var(--border);
+  padding: .2rem .55rem; border-radius: var(--r); cursor: pointer;
+  transition: color .2s, border-color .2s;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--border-2); }
+
+/* 行内代码 */
+.prose code {
+  font-family: var(--ff-mono); font-size: .82em;
+  background: var(--bg-3); padding: .15em .45em;
+  border-radius: 3px; color: var(--cpp);
+}
+/* 代码块内 code 不使用行内代码样式，避免出现一条条色块 */
+.prose pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.prose pre code.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+/* 文章底部 */
+.post-footer-nav {
+  margin-top: 3rem; padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+}
+.post-nav-link {
+  display: flex; flex-direction: column; gap: .3rem; max-width: 280px;
+}
+.post-nav-label { font-family: var(--ff-mono); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.post-nav-title { font-family: var(--ff-serif); font-size: .95rem; color: var(--text-2); line-height: 1.4; transition: color .2s; }
+.post-nav-link:hover .post-nav-title { color: var(--text); }
+.post-nav-link--next { text-align: right; }
+
+/* 右侧目录 */
+.toc-sidebar { position: sticky; top: 78px; }
+.toc-widget { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.toc-head {
+  padding: .75rem 1.1rem; border-bottom: 1px solid var(--border);
+  font-family: var(--ff-mono); font-size: .6rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-3);
+  display: flex; align-items: center; gap: .5rem;
+}
+.toc-dot { width: 5px; height: 5px; border-radius: 50%; }
+.toc-body { padding: .8rem 0; }
+.toc-item {
+  display: block; padding: .38rem 1.1rem;
+  font-family: var(--ff-mono); font-size: .65rem; color: var(--text-3);
+  letter-spacing: .03em; transition: color .2s, background .2s;
+  border-left: 2px solid transparent;
+}
+.toc-item:hover, .toc-item.active { color: var(--text); background: var(--bg-3); border-left-color: var(--cs); }
+.toc-item--h3 { padding-left: 2rem; font-size: .62rem; }
+
+
+@media (max-width: 900px) {
+  .post-layout { grid-template-columns: 1fr; }
+  .toc-sidebar { display: none; }
+}
+@media (max-width: 768px) {
+  .post-footer-nav { flex-direction: column; align-items: flex-start; }
+  .post-nav-link--next { text-align: left; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 导航 ══ -->
+<header id="hdr">
+  <div class="container">
+    <nav class="nav">
+      <a href="../../index.html" class="nav-logo">
+        <span class="logo-bracket">[</span>qiangcraft<span class="logo-bracket">]</span>
+        <span class="logo-cursor"></span>
+      </a>
+      <div class="nav-right">
+        <a href="../../index.html" class="nav-text-link">← 返回首页</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- ══ 文章头 ══ -->
+<section class="post-hero">
+  <div class="container--narrow">
+    <!-- 面包屑 -->
+    <div class="post-breadcrumb">
+      <a href="../../index.html">首页</a>
+      <span class="post-breadcrumb-sep">/</span>
+      <!-- ③ 改分类 -->
+      <span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span>
+    </div>
+
+    <!-- 元信息 -->
+    <div class="post-head-meta">
+      <!-- ④ 改日期和阅读时间 -->
+      <span class="post-head-date">2026-03-22</span>
+      <span class="post-head-dot"></span>
+      <span class="post-head-read">约 13 分钟</span>
+    </div>
+
+    <!-- ⑤ 改标题 -->
+    <h1 class="post-title">人形机器人与四足机器人：传感器分类原理与对比</h1>
+    <!-- ⑥ 改副标题/摘要（可选） -->
+    <p class="post-subtitle">机器人的传感器系统可类比为人体的感官系统——没有传感器，机器人就是&quot;盲聋&quot;的机械体。本文将所有传感器按**本体感知**、**环境感知**和**特殊/新兴**三大类别逐一梳理，每类以表格形式对比原理、关键参数和典型应用。</p>
+  </div>
+</section>
+
+<!-- ══ 正文 ══ -->
+<main>
+  <div class="container">
+    <div class="post-layout">
+
+      <!-- 正文内容 -->
+      <article class="post-body reveal">
+        <div class="prose" id="post-md">
+
+          <!-- ⑦ 从这里开始写正文 ↓ -->
+          <!-- 只需粘贴 Markdown 文本，页面会自动渲染 -->
+          <script type="text/markdown" data-target="post-md">
+
+---
+
+## 一、本体感知传感器（Proprioceptive Sensors）
+
+本体感知传感器用于感知机器人"自身"的状态：关节在哪里、身体朝哪个方向、施加了多大的力。
+
+### 1.1 旋转编码器（Rotary Encoder）
+
+编码器是关节控制的"眼睛"，负责告诉控制器关节转到了哪里、转了多快。
+
+| 类型 | 工作原理 | 分辨率 | 精度 | 优点 | 缺点 | 典型产品 |
+|------|----------|--------|------|------|------|----------|
+| 光电增量式 | 光源穿过码盘光栅，光电管输出 A/B 正交脉冲，计数得位移 | 500–10,000 线/转 | ±1 脉冲 | 成熟、低成本、响应快 | 掉电丢失位置，需归零 | Heidenhain ERN 1387 |
+| 光电绝对式 | 码盘按格雷码刻制，任意位置直接读出数字编码 | 17–23 bit/转 | ±20 arcsec | 上电即知位置，抗干扰 | 成本高、体积较大 | Renishaw RESOLUTE |
+| 磁编码器 | 霍尔/磁阻芯片检测随轴旋转磁铁的磁场变化 | 12–14 bit/转 | ±0.1°–0.3° | 体积小、耐灰尘振动 | 精度不及高端光电 | AMS AS5047P |
+| 电容式 | 检测极板间电容随旋转角度的变化 | 12–16 bit/转 | ±0.05° | 抗磁场干扰 | 湿度敏感、成本较高 | CUI AMT103 |
+
+> **应用要点**：人形机器人 20–40 个关节通常采用"电机侧+关节侧"双编码器方案；四足机器人 8–12 个关节多用紧凑型磁编码器。
+
+---
+
+### 1.2 惯性测量单元（IMU）
+
+IMU 是机器人的"内耳前庭"，让机器人知道自己是正的还是歪的、在加速还是旋转。
+
+| 子传感器 | 工作原理 | 测量量 | 量程 | 关键指标 |
+|----------|----------|--------|------|----------|
+| MEMS 加速度计 | 弹性悬臂梁上的质量块受惯性力偏移，改变电容/压阻值 | 线加速度 (m/s²) | ±2g–±16g | 噪声密度 ~0.06 mg/√Hz |
+| MEMS 陀螺仪 | 振动质量块旋转时受科里奥利力偏移，电容检测 | 角速度 (°/s) | ±250–±2000°/s | 零偏稳定性 1–10°/h |
+| 磁力计 | 霍尔/磁阻元件检测地磁场三轴分量 | 磁场强度 (μT) | ±1200 μT | 分辨率 ~0.1 μT |
+| 气压计 | 压阻式检测大气压力变化 | 气压 → 高度 | 300–1100 hPa | 高度分辨率 ±0.1 m |
+
+**常用 IMU 模块对比：**
+
+| 型号 | 厂商 | 自由度 | 陀螺零偏稳定性 | 典型用途 |
+|------|------|--------|----------------|----------|
+| ICM-42688-P | TDK InvenSense | 6-DOF | 3°/h | 消费级四足机器人 |
+| BMI088 | Bosch | 6-DOF | 6°/h | MIT Cheetah 系列 |
+| ADIS16470 | Analog Devices | 6-DOF | 2°/h | 高端研究平台 |
+| VN-100 | VectorNav | 9-DOF (AHRS) | < 5°/h | 人形机器人 |
+| Xsens MTi-3 | Movella | 9-DOF | 8°/h | 运动捕捉/机器人 |
+
+> **应用要点**：安装于躯干重心处，IMU 高频数据（200–1000 Hz）用于姿态反馈和状态估计，是平衡控制的核心输入。
+
+---
+
+### 1.3 力/力矩传感器（Force/Torque Sensor）
+
+| 类型 | 工作原理 | 精度 | 响应速度 | 优点 | 缺点 | 代表产品 |
+|------|----------|------|----------|------|------|----------|
+| 应变片式 | 应变片贴于弹性体，形变→电阻变化→惠斯通电桥输出电压 | ±0.5%–1% FS | 中（~kHz） | 最成熟、六维力输出稳定 | 需温度补偿 | ATI Mini45 |
+| 压电式 | 压电晶体受力产生电荷 | ±1% FS | 极快（>kHz） | 高频动态测量优异 | 不能测静态力（电荷泄漏） | Kistler 9257B |
+| 电容式 | 弹性体变形改变极板间距→电容变化 | ±0.5% FS | 中 | 灵敏度高、功耗低 | 易受电磁干扰 | 研究定制 |
+| 光学式 (FBG) | 弹性体变形引起光纤布拉格光栅波长漂移 | ±0.3% FS | 中 | 完全抗电磁干扰 | 成本高、标定复杂 | 研究定制 |
+
+> **安装位置**：① 脚底/足端 → 地面反力（GRF）检测；② 手腕 → 灵巧操作力反馈；③ 关节输出侧 → 力矩闭环控制。
+
+---
+
+### 1.4 电流传感器（Current Sensor）
+
+| 类型 | 工作原理 | 精度 | 优点 | 缺点 | 代表 |
+|------|----------|------|------|------|------|
+| 分流电阻法 | 串联精密电阻，测两端压降推算电流 | ±1% | 最简单、成本极低 | 有功耗、温漂影响 | 板载贴片电阻 |
+| 霍尔效应式 | 电流产生磁场，霍尔元件检测 | ±1%–2% | 非接触、隔离好 | 温度漂移 | ACS712 |
+| 磁通门式 | 利用磁芯饱和特性精密测量电流 | ±0.1% | 精度最高 | 成本高、体积大 | LEM IT 60-S |
+
+> **应用要点**：通过 τ = Kt × I 间接估算关节力矩，是 MIT Cheetah、Unitree 系列四足机器人力控的核心方案，成本远低于安装专用力矩传感器。
+
+---
+
+### 1.5 足底压力 / 接触传感器
+
+| 类型 | 工作原理 | 精度 | 优点 | 缺点 | 代表 |
+|------|----------|------|------|------|------|
+| 力敏电阻 (FSR) | 受压后导电颗粒接触增加→电阻下降 | ±5%–25% | 极低成本、薄 | 线性度差、迟滞大 | Interlink FSR 402 |
+| 压电薄膜 (PVDF) | 形变产生电荷 | 动态好 | 响应极快 | 不测静态力 | TE MEAS LDT0 |
+| 电容式压力垫 | 受压→极板间距缩小→电容增大 | ±2%–5% | 高密度阵列、精度较好 | 电路复杂 | Pressure Profile Sys. |
+| 应变片阵列 | 微型应变片阵列检测分布压力 | ±1%–3% | 精度最高 | 成本高、布线复杂 | 定制方案 |
+
+> **应用要点**：人形机器人脚底 4–16 点阵列用于 ZMP 计算和步态切换；四足机器人足端单点 FSR 用于触地检测。
+
+---
+
+### 1.6 其他本体传感器
+
+| 传感器 | 工作原理 | 关键参数 | 应用 |
+|--------|----------|----------|------|
+| 温度传感器 (NTC/PT100) | 热敏材料电阻随温度变化（NTC 负温度系数；PT100 正比线性） | ±0.1°C–±0.5°C | 电机/电池过热保护 |
+| 电压/电池监测 | 分压器+ADC 测电池电压；库仑计积分电流跟踪 SOC | ±1% SOC | 低电量预警、自动回充 |
+| 关节力矩传感器 | 关节输出侧应变式力矩传感器或 SEA 弹性体形变编码 | ±0.1%–1% FS | 直接力矩闭环控制 |
+
+---
+
+## 二、环境感知传感器（Exteroceptive Sensors）
+
+环境感知传感器让机器人"看见、听见、摸到"外部世界。
+
+### 2.1 激光雷达（LiDAR）
+
+| 类型 | 工作原理 | 量程 | 点频/线数 | 视场角 | 重量 | 代表产品 |
+|------|----------|------|-----------|--------|------|----------|
+| 机械旋转式 | 电机驱动激光发射/接收模块 360° 旋转，ToF 测距 | 100–200 m | 16–128 线 | 360°×30° | 500–900 g | Velodyne VLP-16 |
+| 半固态 MEMS | MEMS 微振镜偏转激光束扫描，无整体旋转 | 40–70 m | ~200k pts/s | 360°×59° | 265 g | Livox Mid-360 |
+| 固态 Flash | 面阵发射+面阵探测器同时成像，无活动部件 | 20–50 m | 面阵 | 120°×80° | <200 g | Continental HFL110 |
+| FMCW | 连续频率调制激光，回波拍频同时得距离和速度 | 200+ m | ~300 线 | 120°×25° | ~800 g | Aeva Aeries II |
+
+> **应用要点**：四足机器人背部搭载 LiDAR 做 SLAM 导航是主流方案；人形机器人中 LiDAR 多作为补充传感器。
+
+---
+
+### 2.2 深度相机（RGB-D Camera）
+
+| 技术路线 | 工作原理 | 量程 | 深度精度 | 室外表现 | 代表产品 |
+|----------|----------|------|----------|----------|----------|
+| 结构光 | 投射已知红外图案，分析形变三角测距 | 0.2–3 m | 亚毫米级（近距） | 差（强光干扰） | RealSense D435i |
+| 飞行时间 (iToF) | 发射调制红外光，测回波相位差得距离 | 0.5–10 m | 厘米级 | 中等 | Azure Kinect DK |
+| 主动红外立体 | 双红外相机+散斑投射，视差计算深度 | 0.6–10 m | 厘米级 | 较好 | RealSense D455 |
+| 被动双目 | 两个 RGB 相机通过视差计算深度 | 0.3–20 m | 厘米级（远距下降） | 好 | ZED 2i |
+
+> **应用要点**：近距避障、物体识别与抓取位姿估计、局部地形重建。Spot 安装 5 个深度相机实现 360° 环境感知。
+
+---
+
+### 2.3 视觉相机
+
+| 类型 | 工作原理 | 帧率 | 动态范围 | 优点 | 缺点 |
+|------|----------|------|----------|------|------|
+| 单目 RGB | CMOS 传感器将光学图像转为数字信号 | 30–120 fps | ~60 dB | 成本低、信息丰富 | 无直接深度信息 |
+| 双目立体 | 两个平行相机通过视差 d = fB/D 计算深度 | 15–100 fps | ~60 dB | 被动式、室内外可用 | 弱纹理深度差、计算量大 |
+| 事件相机 (DVS) | 像素独立异步响应亮度变化，仅输出变化事件 | μs 级时间分辨率 | >120 dB | 超高时间分辨率、极低功耗 | 生态不成熟、成本高 |
+
+> **应用要点**：单目/双目用于视觉 SLAM 和语义理解；事件相机适合高速运动场景下的视觉里程计。
+
+---
+
+### 2.4 触觉传感器（Tactile Sensor）
+
+| 类型 | 工作原理 | 空间分辨率 | 响应 | 优点 | 缺点 | 代表 |
+|------|----------|------------|------|------|------|------|
+| 压阻/FSR | 导电橡胶受压电阻下降 | ~mm 级 | 中 | 简单、柔性、便宜 | 迟滞大、非线性 | Interlink FSR |
+| 电容式 | 弹性介电层受压→电容变化 | ~0.5 mm | 中 | 灵敏度高、可阵列 | 电磁干扰敏感 | 定制阵列 |
+| 压电式 (PVDF) | 形变产生电荷 | ~mm 级 | 极快 | 检测振动/滑动优异 | 不测静态力 | TE MEAS |
+| 光学视觉触觉 | 弹性凝胶形变由内置相机捕捉重建 | ~μm 级 | 中 | 分辨率极高（指纹级） | 体积较大 | MIT GelSight / DIGIT |
+| 磁性式 | 弹性体内嵌磁体，霍尔传感器检测磁场变化 | ~mm 级 | 快 | 三轴力感知、紧凑 | 磁干扰 | XELA uSkin |
+| BioTac 多模态 | 电极阵列+力+温度+流体压力集成 | ~mm 级 | 中 | 最接近人类指尖感知 | 极昂贵 | SynTouch BioTac |
+
+> **应用要点**：人形机器人灵巧手的核心传感器，实现力控抓取和物体材质识别；全身电子皮肤是人机安全交互的方向。
+
+---
+
+### 2.5 超声波 / 红外接近 / 麦克风阵列
+
+| 传感器 | 工作原理 | 量程 | 精度 | 优点 | 缺点 | 代表 |
+|--------|----------|------|------|------|------|------|
+| 超声波 | 发射 40 kHz 超声脉冲，ToF 测距 | 2 cm–5 m | ±1 cm | 极低成本、可检测透明物体 | 波束角宽、分辨率低 | HC-SR04 |
+| 红外接近 (ToF) | 单点红外 ToF 芯片测距 | 5 cm–4 m | ±3% | 功耗低、体积微小 | 易受环境光干扰 | VL53L0X |
+| 红外反射式 | IR LED + 光敏管检测反射强度 | 1–30 cm | 定性 | 最简单、成本最低 | 仅近距存在检测 | Sharp GP2Y |
+| 麦克风阵列 | 多个 MEMS 麦克风按几何排列，TDOA 波束成形 | — | 声源定位 ±5° | 远场语音、方向检测 | 复杂信号处理 | ReSpeaker 4-Mic |
+
+> **应用要点**：超声波/红外用于近距盲区补充避障和悬崖检测；麦克风阵列在人形机器人中实现语音交互和声源定位。
+
+---
+
+### 2.6 GNSS 与气压计
+
+| 传感器 | 工作原理 | 精度 | 优点 | 缺点 | 代表 |
+|--------|----------|------|------|------|------|
+| 单频 GNSS | 接收 GPS/北斗等卫星信号，伪距定位 | 2–5 m | 全球覆盖、绝对定位 | 室内不可用、城市峡谷差 | u-blox NEO-M8N |
+| RTK-GNSS | 差分载波相位实时动态定位 | ±1–2 cm | 厘米级精度 | 需基站或网络 RTK | u-blox ZED-F9P |
+| 气压高度计 | 压阻检测大气压变化→推算相对高度 | ±0.1 m | 低功耗、可测楼层 | 天气/开关门影响 | Bosch BMP390 |
+
+---
+
+## 三、特殊与新兴传感器
+
+| 传感器 | 工作原理 | 关键参数 | 主要应用 |
+|--------|----------|----------|----------|
+| 电子皮肤 (E-Skin) | 柔性基底上大面积电容/压阻阵列，覆盖机体表面 | ~1 感知点/cm² | 全身碰撞检测、人机安全交互 |
+| 滑觉传感器 | PVDF 压电薄膜捕捉滑动引起的高频微振动 | kHz 采样 | 最小夹紧力控制，防止物体滑落 |
+| 热像仪 | 检测物体 8–14 μm 中远红外辐射成像 | 160×120 至 640×480 | 火源定位、设备过热检测、夜视 |
+| 毫米波雷达 | 77 GHz 电磁波发射→多普勒回波测距/测速/测角 | 距离分辨率 ~4 cm | 穿透雨雾灰尘、动态目标速度检测 |
+| 激光位移传感器 | 单点激光 ToF 精密测距 | ±1 mm，量程 100 m | 精确墙距测量、线性位移检测 |
+| SEA/VSA 内置传感器 | 弹性元件形变量由编码器测得 → τ = K × Δθ 得力矩 | 取决于弹簧刚度和编码器 | 柔顺力控关节（Digit、LOLA） |
+| 神经形态传感器 | 仿生异步事件输出，仅在信号变化时发送数据 | μs 级延迟 | 超低功耗/超低延迟的感知-决策闭环 |
+
+---
+
+## 四、人形 vs 四足机器人传感器配置总览
+
+| 传感器 | 人形机器人 | 四足机器人 | 差异根源 |
+|--------|-----------|-----------|----------|
+| 关节编码器 | 20–40 个（含手指关节） | 8–12 个 | 人形自由度远多 |
+| IMU | 躯干 1 个 + 可选肢体 | 躯干 1 个 | 基本一致 |
+| 力/力矩传感器 | 脚底 + 手腕 + 关节 | 足端（可选） | 人形需操作力控 |
+| 足底压力 | 多点阵列（4–16 点） | 单点接触开关/FSR | 双足平衡要求高 |
+| 深度相机 | 头部 + 可选躯干 | 前方 + 可选全周 | 四足更需全向避障 |
+| LiDAR | 可选 | 背部常用 | 四足自主导航强需求 |
+| 触觉传感器 | 指尖 + 全身皮肤 | 足底可选 | 人形操作需求驱动 |
+| 麦克风 | 头部（常用） | 较少使用 | 人形需要语音交互 |
+| GNSS | 室外可选 | 室外常用 | 四足多在户外场景 |
+| 电流传感器 | 每个关节驱动器 | 每个关节驱动器 | 一致 |
+
+---
+
+## 五、小结
+
+传感器是机器人智能的物理基础。从关节内部的编码器和电流传感器，到体表的 IMU 和触觉皮肤，再到向外探测的 LiDAR、相机和超声波，它们共同构成了一个多层次、多模态的感知网络。未来的趋势是传感器更小、更集成、更智能——深度学习将直接作用于原始传感器流，柔性材料将让触觉覆盖全身，神经形态芯片将把感知延迟压缩到微秒级别。对于工程实践而言，理解每种传感器的原理与局限，合理选型与融合，才是打造高性能腿足机器人的关键。
+
+          </script>
+
+          <!-- ⑦ 正文到这里结束 ↑ -->
+
+        </div>
+
+        <!-- 文章底部翻页 -->
+        <nav class="post-footer-nav">
+          <!-- ⑧ 上一篇（没有就删掉这个 a 标签） -->
+          <a href="./optimus_architecture.html" class="post-nav-link post-nav-link--prev"><span class="post-nav-label">← 上一篇</span><span class="post-nav-title">Tesla Optimus 整体系统技术架构</span></a>
+          <!-- ⑨ 下一篇（没有就删掉这个 a 标签） -->
+          <a href="#" class="post-nav-link post-nav-link--next" style="pointer-events:none;opacity:.45"><span class="post-nav-label">下一篇 →</span><span class="post-nav-title">暂无</span></a>
+        </nav>
+      </article>
+
+      <!-- 右侧目录（自动高亮） -->
+      <aside class="toc-sidebar">
+        <div class="toc-widget">
+          <div class="toc-head">
+            <!-- ⑩ 改分类颜色：personal/cs/cpp/robotics -->
+            <span class="toc-dot" style="background:var(--cs)"></span>
+            目录
+          </div>
+          <nav class="toc-body" id="toc">
+            <!-- ⑪ 手动填写目录（和正文 h2/h3 对应） -->
+            <a href="#section-1" class="toc-item">第一个小标题</a>
+            <a href="#section-2" class="toc-item">代码示例</a>
+            <a href="#section-3" class="toc-item">列表示例</a>
+          </nav>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</main>
+
+<!-- ══ 页脚 ══ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo"><span style="color:var(--text-3)">[</span>qiangcraft<span style="color:var(--text-3)">]</span></div>
+      <p class="footer-copy">© 2026 — 写代码，也写人</p>
+      <div class="footer-links">
+        <a href="https://github.com/qiangcraft">GitHub</a>
+        <a href="mailto:qiangz514@foxmail.com">邮件</a>
+        <a href="#" data-open-wechat>微信</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="wechat-modal" id="wechat-modal" aria-hidden="true">
+  <div class="wechat-modal-card" role="dialog" aria-modal="true" aria-label="与我联系">
+    <div class="wechat-modal-head">
+      <span>与我联系</span>
+      <button class="wechat-close" id="wechat-close" type="button">关闭</button>
+    </div>
+    <div class="wechat-modal-body">
+      <img src="../../contact/wechat.jpeg" alt="微信二维码" class="wechat-qr" id="wechat-qr"/>
+      <p class="wechat-tip" id="wechat-tip">扫码添加微信</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="../../assets/main.js"></script>
+<script>
+/* 目录自动高亮 */
+const tocLinks = document.querySelectorAll('.toc-item');
+const headings = document.querySelectorAll('.prose h2, .prose h3');
+if (tocLinks.length && headings.length) {
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const match = [...tocLinks].find(l => l.getAttribute('href') === '#' + e.target.id);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  headings.forEach(h => io.observe(h));
+}
+</script>
+</body>
+</html>

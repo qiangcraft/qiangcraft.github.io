@@ -1247,8 +1247,9 @@ def render_nav_link(kind: str, item: Optional[dict]) -> str:
 
 def replace_nav_link(html: str, kind: str, replacement: str) -> str:
     cls = "post-nav-link--prev" if kind == "prev" else "post-nav-link--next"
-    pat = rf'<a href="[^"]*" class="post-nav-link {cls}"(?:[^>]*)>.*?</a>'
-    m = re.search(r'(<nav class="post-footer-nav">)(.*?)(</nav>)', html, re.S)
+    # Be tolerant to class order/additional classes/attributes.
+    pat = rf'<a\b[^>]*class="[^"]*\b{cls}\b[^"]*"[^>]*>.*?</a>'
+    m = re.search(r'(<nav\b[^>]*class="[^"]*\bpost-footer-nav\b[^"]*"[^>]*>)(.*?)(</nav>)', html, re.S | re.I)
     if not m:
         return html
     body = m.group(2)
