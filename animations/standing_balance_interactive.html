@@ -1,0 +1,163 @@
+<style>
+@keyframes sway { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(var(--lean,0deg))} }
+.robot-body { transform-origin: 310px 380px; transition: transform 0.4s ease; }
+.bar-fill { transition: width 0.4s ease; }
+.torque-label { transition: color 0.2s; }
+</style>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:8px 0">
+
+<div>
+<svg width="100%" viewBox="0 0 300 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Ground -->
+  <rect x="30" y="385" width="240" height="8" rx="2" fill="var(--color-border-secondary)"/>
+  <line x1="30" y1="393" x2="270" y2="393" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+
+  <!-- Robot group (pivots at ankles) -->
+  <g id="robot-group" style="transform-origin:150px 380px;transform:rotate(0deg);transition:transform 0.5s ease">
+    <!-- Left foot -->
+    <rect x="70" y="370" width="60" height="12" rx="4" fill="var(--color-background-secondary)" stroke="var(--color-border-primary)" stroke-width="0.5"/>
+    <!-- Right foot -->
+    <rect x="170" y="370" width="60" height="12" rx="4" fill="var(--color-background-secondary)" stroke="var(--color-border-primary)" stroke-width="0.5"/>
+    <!-- Left leg -->
+    <rect x="88" y="290" width="22" height="80" rx="6" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+    <!-- Right leg -->
+    <rect x="190" y="290" width="22" height="80" rx="6" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+    <!-- Hips -->
+    <rect x="80" y="280" width="140" height="20" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+    <!-- Torso -->
+    <rect x="100" y="180" width="100" height="100" rx="10" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+    <!-- Head -->
+    <ellipse cx="150" cy="158" rx="28" ry="26" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+    <!-- IMU indicator on torso -->
+    <rect x="138" y="196" width="24" height="14" rx="3" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+    <text style="font-size:9px;fill:#185FA5;font-family:var(--font-sans)" x="150" y="207" text-anchor="middle">IMU</text>
+    <!-- Knee joints -->
+    <circle cx="99" cy="290" r="8" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+    <circle cx="201" cy="290" r="8" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+    <!-- Ankle joints -->
+    <circle cx="99" cy="370" r="8" fill="#1D9E75" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.3"/>
+    <circle cx="201" cy="370" r="8" fill="#1D9E75" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.3"/>
+    <!-- Hip joints -->
+    <circle cx="99" cy="280" r="7" fill="#EF9F27" stroke="#BA7517" stroke-width="0.5" fill-opacity="0.4"/>
+    <circle cx="201" cy="280" r="7" fill="#EF9F27" stroke="#BA7517" stroke-width="0.5" fill-opacity="0.4"/>
+    <!-- ZMP dot on foot -->
+    <circle id="zmp-dot" cx="150" cy="378" r="5" fill="#E24B4A" opacity="0.85"/>
+    <text id="zmp-label" style="font-size:9px;fill:#A32D2D;font-family:var(--font-sans)" x="150" y="367" text-anchor="middle">ZMP</text>
+  </g>
+
+  <!-- Support polygon (static) -->
+  <rect x="70" y="381" width="160" height="4" rx="2" fill="#1D9E75" opacity="0.15"/>
+  <text style="font-size:9px;fill:#0F6E56;font-family:var(--font-sans)" x="150" y="404" text-anchor="middle">支撑面</text>
+
+  <!-- Lean arrow (shown when lean > 0) -->
+  <line id="lean-arrow" x1="150" y1="158" x2="150" y2="158" stroke="#E24B4A" stroke-width="1.5" marker-end="url(#arr2)" opacity="0"/>
+
+  <!-- Gravity line -->
+  <line x1="150" y1="130" x2="150" y2="385" stroke="var(--color-border-tertiary)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <text style="font-size:9px;fill:var(--color-text-tertiary);font-family:var(--font-sans)" x="156" y="145">重心线</text>
+</svg>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px;padding-top:8px">
+  <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px">扰动模拟</div>
+
+  <label style="font-size:12px;color:var(--color-text-secondary)">前后推力</label>
+  <input type="range" id="push-slider" min="-30" max="30" value="0" step="1" oninput="updateSim()"/>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-tertiary);margin-top:-6px">
+    <span>向后推</span><span>向前推</span>
+  </div>
+
+  <div style="margin-top:8px;font-size:12px;font-weight:500;color:var(--color-text-secondary)">各关节响应力矩</div>
+
+  <div style="display:flex;flex-direction:column;gap:6px" id="torque-bars">
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+        <span style="color:#0F6E56">踝关节</span>
+        <span id="ankle-val" style="color:#0F6E56;font-weight:500">0 N·m</span>
+      </div>
+      <div style="height:10px;background:var(--color-background-secondary);border-radius:5px;overflow:hidden">
+        <div id="ankle-bar" class="bar-fill" style="height:100%;width:0%;background:#1D9E75;border-radius:5px;transition:width 0.4s ease,background 0.3s"></div>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+        <span style="color:#854F0B">膝关节</span>
+        <span id="knee-val" style="color:#854F0B;font-weight:500">0 N·m</span>
+      </div>
+      <div style="height:10px;background:var(--color-background-secondary);border-radius:5px;overflow:hidden">
+        <div id="knee-bar" class="bar-fill" style="height:100%;width:0%;background:#EF9F27;border-radius:5px"></div>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+        <span style="color:#185FA5">髋关节</span>
+        <span id="hip-val" style="color:#185FA5;font-weight:500">0 N·m</span>
+      </div>
+      <div style="height:10px;background:var(--color-background-secondary);border-radius:5px;overflow:hidden">
+        <div id="hip-bar" class="bar-fill" style="height:100%;width:0%;background:#378ADD;border-radius:5px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:8px;padding:8px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:11px;color:var(--color-text-secondary)" id="status-text">
+    当前状态：平衡站立，各关节仅输出静态抵重力矩
+  </div>
+
+  <div style="margin-top:4px;display:flex;gap:8px">
+    <div style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block"></span>踝关节（首要响应）</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <div style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#378ADD;display:inline-block"></span>髋关节（辅助协调）</div>
+  </div>
+  <button onclick="sendPrompt('为什么站立时踝关节是最主要的平衡关节？')" style="margin-top:8px;font-size:12px;padding:6px 12px;cursor:pointer">踝关节为何最重要？ ↗</button>
+</div>
+</div>
+
+<script>
+function updateSim() {
+  const push = parseInt(document.getElementById('push-slider').value);
+  const lean = push * 0.22;
+  const absP = Math.abs(push);
+  const dir = push > 0 ? '前' : push < 0 ? '后' : '';
+
+  document.getElementById('robot-group').style.transform = `rotate(${lean}deg)`;
+
+  const ankleNm = Math.round(absP * 2.8);
+  const kneeNm  = Math.round(absP * 1.1);
+  const hipNm   = Math.round(absP * 1.6);
+
+  const maxNm = 85;
+  document.getElementById('ankle-bar').style.width = Math.min(ankleNm/maxNm*100,100)+'%';
+  document.getElementById('knee-bar').style.width  = Math.min(kneeNm/maxNm*100,100)+'%';
+  document.getElementById('hip-bar').style.width   = Math.min(hipNm/maxNm*100,100)+'%';
+
+  document.getElementById('ankle-val').textContent = ankleNm+' N·m';
+  document.getElementById('knee-val').textContent  = kneeNm+' N·m';
+  document.getElementById('hip-val').textContent   = hipNm+' N·m';
+
+  const zmpX = 150 + push * 2.5;
+  document.getElementById('zmp-dot').setAttribute('cx', zmpX);
+  document.getElementById('zmp-label').setAttribute('x', zmpX);
+
+  let status;
+  if (absP === 0) {
+    status = '当前状态：平衡站立，各关节仅输出静态抵重力矩';
+  } else if (absP < 12) {
+    status = `轻微向${dir}倾斜 ${lean.toFixed(1)}°：踝关节为主要响应，ZMP 轻微偏移，仍在支撑面内`;
+  } else if (absP < 22) {
+    status = `中等向${dir}扰动：踝关节饱和，髋关节介入协调，ZMP 明显偏移`;
+  } else {
+    status = `强烈向${dir}扰动 ${lean.toFixed(1)}°：全关节链激活，ZMP 接近支撑边界，需迈步恢复！`;
+    document.getElementById('zmp-dot').setAttribute('fill','#A32D2D');
+  }
+  if (absP < 22) document.getElementById('zmp-dot').setAttribute('fill','#E24B4A');
+  document.getElementById('status-text').textContent = status;
+}
+</script>
