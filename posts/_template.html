@@ -40,8 +40,8 @@ main { flex: 1; }
   content: '';
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.032) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 100%);
   pointer-events: none;
@@ -150,6 +150,63 @@ pre.code-block .lang-label {
 .prose pre code.hljs {
   background: transparent;
   padding: 0;
+}
+
+/* 表格样式 */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.6rem 0;
+  font-size: .92rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.prose table thead {
+  background: var(--bg-3);
+  border-bottom: 2px solid var(--border-2);
+}
+.prose table th {
+  padding: .85rem 1rem;
+  font-family: var(--ff-sans);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  letter-spacing: .02em;
+  border-right: 1px solid var(--border);
+}
+.prose table th:last-child {
+  border-right: none;
+}
+.prose table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .2s;
+}
+.prose table tbody tr:last-child {
+  border-bottom: none;
+}
+.prose table tbody tr:hover {
+  background: rgba(91,156,246,.04);
+}
+.prose table td {
+  padding: .75rem 1rem;
+  color: var(--text-2);
+  line-height: 1.6;
+  border-right: 1px solid rgba(255,255,255,.05);
+}
+.prose table td:last-child {
+  border-right: none;
+}
+.prose table td:first-child {
+  font-weight: 500;
+  color: var(--text);
+}
+.prose table code {
+  font-size: .78em;
+  background: rgba(167,139,250,.12);
+  padding: .12em .4em;
 }
 
 /* 文章底部 */

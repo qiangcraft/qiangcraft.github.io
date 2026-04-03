@@ -5,15 +5,15 @@
 
 /* ── 变量 ── */
 :root {
-  --bg:        #0d0f11;
-  --bg-2:      #13161a;
-  --bg-3:      #1a1e24;
-  --surface:   #1f242c;
-  --border:    rgba(255,255,255,.07);
-  --border-2:  rgba(255,255,255,.13);
-  --text:      #e8eaed;
-  --text-2:    #9aa0aa;
-  --text-3:    #5a6070;
+  --bg:        #1a1d23;
+  --bg-2:      #21252d;
+  --bg-3:      #282d38;
+  --surface:   #2f3541;
+  --border:    rgba(255,255,255,.12);
+  --border-2:  rgba(255,255,255,.18);
+  --text:      #f0f2f5;
+  --text-2:    #b4bac5;
+  --text-3:    #6d7585;
 
   --personal:  #f0a04b;
   --cs:        #5b9cf6;

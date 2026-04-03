@@ -22,8 +22,8 @@
   content: '';
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 100%);
   pointer-events: none;
@@ -32,7 +32,7 @@
   content: '';
   position: absolute; top: -30%; left: 50%; transform: translateX(-50%);
   width: 800px; height: 500px;
-  background: radial-gradient(ellipse, rgba(91,156,246,.07) 0%, rgba(167,139,250,.05) 40%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(91,156,246,.12) 0%, rgba(167,139,250,.08) 40%, transparent 70%);
   pointer-events: none;
 }
 .hero-inner {
@@ -114,20 +114,23 @@ h1.hero-title em {
   border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
 }
 .post-card {
-  background: var(--bg); padding: 1.7rem;
+  background: var(--bg); padding: 1.8rem;
   display: flex; flex-direction: column; gap: .9rem;
   cursor: pointer; position: relative; overflow: hidden;
-  transition: background .25s;
+  transition: background .25s, transform .2s;
+}
+.post-card:hover {
+  transform: translateY(-2px);
 }
 .post-card::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
   transform:scaleX(0); transform-origin:left; transition:transform .35s var(--ease);
 }
 .post-card[data-cat="personal"]::before { background:var(--personal); }
 .post-card[data-cat="cs"]::before       { background:var(--cs); }
 .post-card[data-cat="cpp"]::before      { background:var(--cpp); }
 .post-card[data-cat="robotics"]::before { background:var(--robotics); }
-.post-card:hover { background: var(--bg-2); }
+.post-card:hover { background: var(--bg-2); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
 .post-card:hover::before { transform: scaleX(1); }
 .post-card.hidden { display: none; }
 a.post-card { text-decoration:none; }
