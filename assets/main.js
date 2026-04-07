@@ -462,6 +462,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
+    // Hide navigation links if file:// protocol (fetch won't work)
+    if (location.protocol === 'file:' && prevLink && nextLink) {
+      setNav(prevLink, null, true);
+      setNav(nextLink, null, false);
+      return;
+    }
+
     if (currentCat && currentFile) {
       fetch('../../index.html')
         .then(r => r.text())
@@ -484,14 +491,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const idx = posts.findIndex(p => p.file === currentFile);
           if (idx >= 0) {
+            // Posts sorted newest-first: idx-1 is newer, idx+1 is older
+            // "上一篇" (Previous) = older article, "下一篇" (Next) = newer article
             const newer = idx > 0 ? posts[idx - 1] : null;
             const older = idx + 1 < posts.length ? posts[idx + 1] : null;
-            setNav(prevLink, newer, true);
-            setNav(nextLink, older, false);
+            setNav(prevLink, older, true);   // Previous = older
+            setNav(nextLink, newer, false);  // Next = newer
           }
         })
         .catch(() => {
-          // Keep fallback links already rendered in HTML.
+          // Fetch failed - set to "暂无"
+          setNav(prevLink, null, true);
+          setNav(nextLink, null, false);
         });
     }
   }
