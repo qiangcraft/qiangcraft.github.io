@@ -355,26 +355,9 @@ a.post-card { text-decoration:none; }
     <main>
       <div class="posts-header reveal">
         <span class="posts-label">// 最新文章</span>
-        <span class="posts-count" id="post-count">17 篇</span>
+        <span class="posts-count" id="post-count">6 篇</span>
       </div>
       <div class="posts-grid reveal" id="posts-grid">
-
-        <!-- 精选：随笔 -->
-        <a href="posts/personal/on-learning-deeply.html" class="post-card post-card--featured" data-cat="personal">
-          <div class="feat-icon feat-icon--personal">✦</div>
-          <div class="post-body">
-            <div class="pc-top">
-              <span class="cat cat--personal"><span class="cat-dot"></span>随笔</span>
-              <span class="post-date">2026-03-15</span>
-            </div>
-            <h2 class="post-title">关于深度学习：为什么我停止追求广度</h2>
-            <p class="post-excerpt">放慢脚步、选择更少的事情、往深处走，改变了我学习和构建东西的方式。这个领悟来自机器人，但适用于所有地方。</p>
-            <div class="pc-footer">
-              <span class="post-meta">约 8 分钟 · 精选</span>
-              <span class="post-arrow">↗</span>
-            </div>
-          </div>
-        </a>
 
         <!-- 机器人 -->
         <a href="posts/robotics/humanoid-robot-structural-mechanical-supply-chain.html" class="post-card" data-cat="robotics">
@@ -408,14 +391,6 @@ a.post-card { text-decoration:none; }
           <div class="pc-footer"><span class="post-meta">约 16 分钟</span><span class="post-arrow">↗</span></div>
         </a>
 
-        <!-- 计算机基础 -->
-        <a href="posts/cs/cpu-cache-memory-model.html" class="post-card" data-cat="cs">
-          <div class="pc-top"><span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span><span class="post-date">2026-03-10</span></div>
-          <h2 class="post-title">CPU 缓存与内存模型：真正发生了什么</h2>
-          <p class="post-excerpt">L1、L2、L3，大家都知道这些名字，但缓存未命中时究竟发生了什么？从底层讲清楚缓存一致性及其对代码的影响。</p>
-          <div class="pc-footer"><span class="post-meta">约 12 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
         <!-- C++ -->
         <a href="posts/cpp/raii-cpp.html" class="post-card" data-cat="cpp" data-tags="C++">
           <div class="pc-top"><span class="cat cat--cpp"><span class="cat-dot"></span>C++</span><span class="post-date">2026-03-05</span></div>
@@ -431,88 +406,11 @@ a.post-card { text-decoration:none; }
         </a>
 
         <!-- 机器人 -->
-        <a href="posts/robotics/pid-controller.html" class="post-card" data-cat="robotics">
-          <div class="pc-top"><span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span><span class="post-date">2026-02-28</span></div>
-          <h2 class="post-title">从零实现 PID 控制器——以及它失效的时候</h2>
-          <p class="post-excerpt">写一个 PID 循环很容易，在真实硬件上调参、处理死区、噪声和饱和，才是真正的考验。</p>
-          <div class="pc-footer"><span class="post-meta">约 14 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- 机器人 -->
         <a href="posts/robotics/robot_full_system.html" class="post-card" data-cat="robotics" data-tags="人形机器人">
           <div class="pc-top"><span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span><span class="post-date">2026-03-20</span></div>
           <h2 class="post-title">人形机器人系统总览</h2>
           <p class="post-excerpt">传感器 · 执行器 · 通信协议 · 身体结构 · 软件架构 · 具身智能</p>
           <div class="pc-footer"><span class="post-meta">系统图谱</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- 计算机基础 -->
-        <a href="posts/cs/hash-table-deep-dive.html" class="post-card" data-cat="cs">
-          <div class="pc-top"><span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span><span class="post-date">2026-02-20</span></div>
-          <h2 class="post-title">哈希表：教科书之外的真相</h2>
-          <p class="post-excerpt">开放寻址 vs 链式法、Robin Hood 哈希，以及为什么哈希函数的选择比你想象的更重要。</p>
-          <div class="pc-footer"><span class="post-meta">约 10 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- C++ -->
-        <a href="posts/cpp/move-vs-forward.html" class="post-card" data-cat="cpp">
-          <div class="pc-top"><span class="cat cat--cpp"><span class="cat-dot"></span>C++</span><span class="post-date">2026-02-14</span></div>
-          <h2 class="post-title">std::move 与 std::forward，我终于搞懂了</h2>
-          <div class="snippet-block"><span class="kw">auto</span> <span class="fn">wrap</span>(<span class="kw">auto</span>&& val) {
-  <span class="cmt">// 完美转发，而非移动</span>
-  <span class="kw">return</span> <span class="fn">Box</span>{
-    std::<span class="fn">forward</span>&lt;<span class="kw">decltype</span>(val)&gt;(val)
-  };
-}</div>
-          <div class="pc-footer"><span class="post-meta">约 7 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- 随笔 -->
-        <a href="posts/personal/machines-taught-me.html" class="post-card" data-cat="personal">
-          <div class="pc-top"><span class="cat cat--personal"><span class="cat-dot"></span>随笔</span><span class="post-date">2026-02-05</span></div>
-          <h2 class="post-title">机器教会我的事</h2>
-          <p class="post-excerpt">调试硬件是一项诚实的工作，它从不说谎。关于构建存在于物理世界中的东西，以及这件事教会你什么。</p>
-          <div class="pc-footer"><span class="post-meta">约 6 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- 机器人 -->
-        <a href="posts/robotics/ros2-vs-custom.html" class="post-card" data-cat="robotics">
-          <div class="pc-top"><span class="cat cat--robotics"><span class="cat-dot"></span>机器人</span><span class="post-date">2026-01-28</span></div>
-          <h2 class="post-title">ROS 2 vs 自己写中间件</h2>
-          <p class="post-excerpt">我花了两周为小型机器人构建了一个极简发布-订阅系统，然后换回了 ROS 2。这是我从两边都学到的东西。</p>
-          <div class="pc-footer"><span class="post-meta">约 16 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- 计算机基础 -->
-        <a href="posts/cs/concurrency-primitives.html" class="post-card" data-cat="cs">
-          <div class="pc-top"><span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span><span class="post-date">2026-01-20</span></div>
-          <h2 class="post-title">并发原语：互斥锁、信号量、条件变量</h2>
-          <p class="post-excerpt">动手理解同步原语——它们保护什么、如何失败，以及什么时候该用哪一个。</p>
-          <div class="pc-footer"><span class="post-meta">约 11 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- C++ -->
-        <a href="posts/cpp/constexpr.html" class="post-card" data-cat="cpp">
-          <div class="pc-top"><span class="cat cat--cpp"><span class="cat-dot"></span>C++</span><span class="post-date">2026-01-10</span></div>
-          <h2 class="post-title">用 constexpr 把计算移到编译期</h2>
-          <p class="post-excerpt">编译期计算不只是性能技巧——它是一种让编译器真正能检查不变量的方式。</p>
-          <div class="pc-footer"><span class="post-meta">约 8 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- 计算机基础 -->
-        <a href="posts/cs/btree.html" class="post-card" data-cat="cs">
-          <div class="pc-top"><span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span><span class="post-date">2025-12-30</span></div>
-          <h2 class="post-title">数据库为什么不用二叉搜索树</h2>
-          <p class="post-excerpt">块存储、缓存行，以及那个支撑着几乎所有数据库索引的、出乎意料优雅的 B 树。</p>
-          <div class="pc-footer"><span class="post-meta">约 13 分钟</span><span class="post-arrow">↗</span></div>
-        </a>
-
-        <!-- 计算机基础 -->
-        <a href="posts/cs/recursive-descent.html" class="post-card" data-cat="cs">
-          <div class="pc-top"><span class="cat cat--cs"><span class="cat-dot"></span>计算机基础</span><span class="post-date">2025-12-15</span></div>
-          <h2 class="post-title">PEG 与递归下降解析</h2>
-          <p class="post-excerpt">手写一个小型解析器是最好的 CS 练习之一。这是让我真正理解它的思维模型。</p>
-          <div class="pc-footer"><span class="post-meta">约 15 分钟</span><span class="post-arrow">↗</span></div>
         </a>
 
         <div class="empty-state" id="empty-state">
